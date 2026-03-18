@@ -26,7 +26,8 @@ func previewExercise(
     name: String = "Squats",
     sets: Int = 3,
     reps: Int = 12,
-    durationSeconds: Int64? = nil
+    durationSeconds: Int64? = nil,
+    imageData: Data? = nil
 ) -> Exercise {
     let exercise = Exercise(
         plan: plan,
@@ -34,10 +35,21 @@ func previewExercise(
         name: name,
         sets: sets,
         reps: reps,
-        durationSeconds: durationSeconds
+        durationSeconds: durationSeconds,
+        imageData: imageData
     )
     container.mainContext.insert(exercise)
     return exercise
+}
+
+/// Renders a solid-color JPEG as placeholder image data for previews.
+func previewImageData(color: UIColor, size: CGSize = CGSize(width: 200, height: 200)) -> Data {
+    let renderer = UIGraphicsImageRenderer(size: size)
+    let image = renderer.image { ctx in
+        color.setFill()
+        ctx.fill(CGRect(origin: .zero, size: size))
+    }
+    return image.jpegData(compressionQuality: 0.8)!
 }
 
 /// A pre-built plan with several varied exercises, useful for list and full-screen previews.

@@ -33,7 +33,7 @@ struct CompletionView: View {
 }
 
 struct CompletionRow: View {
-    private let imageSize: CGFloat = 44
+    private let imageSize: CGFloat = 36
 
     var exercise: Exercise
     var repCounts: [Int]  // one entry per set, value = completed reps
@@ -91,7 +91,13 @@ struct CompletionRow: View {
 
 #Preview("All complete") {
     let container = previewContainer()
-    let plan = previewFullPlan(in: container)
+    let plan = previewPlan(in: container)
+    _ = previewExercise(in: container, plan: plan, order: 1, name: "Squats", sets: 3, reps: 12,
+                        imageData: previewImageData(color: .systemBlue))
+    _ = previewExercise(in: container, plan: plan, order: 2, name: "Push-ups", sets: 3, reps: 15,
+                        imageData: previewImageData(color: .systemGreen))
+    _ = previewExercise(in: container, plan: plan, order: 3, name: "Lunges", sets: 3, reps: 10)
+    _ = previewExercise(in: container, plan: plan, order: 4, name: "Plank Hold", sets: 3, reps: 1, durationSeconds: 60)
     let exercises = plan.exercises.sorted { $0.order < $1.order }.filter { $0.isValid }
     // Every set fully completed
     let completedReps = Dictionary(uniqueKeysWithValues: exercises.map { ex in
@@ -105,7 +111,13 @@ struct CompletionRow: View {
 
 #Preview("Mixed results") {
     let container = previewContainer()
-    let plan = previewFullPlan(in: container)
+    let plan = previewPlan(in: container)
+    _ = previewExercise(in: container, plan: plan, order: 1, name: "Squats", sets: 3, reps: 12,
+                        imageData: previewImageData(color: .systemOrange))
+    _ = previewExercise(in: container, plan: plan, order: 2, name: "Push-ups", sets: 3, reps: 15)
+    _ = previewExercise(in: container, plan: plan, order: 3, name: "Lunges", sets: 3, reps: 10,
+                        imageData: previewImageData(color: .systemPurple))
+    _ = previewExercise(in: container, plan: plan, order: 4, name: "Plank Hold", sets: 3, reps: 1, durationSeconds: 60)
     let exercises = plan.exercises.sorted { $0.order < $1.order }.filter { $0.isValid }
     // Alternate full and partial completion
     let completedReps = Dictionary(uniqueKeysWithValues: exercises.enumerated().map { i, ex in
