@@ -18,7 +18,7 @@ struct ExerciseRow: View {
                         } label: {
                             Image(systemName: "exclamationmark.triangle")
                                 .foregroundStyle(.red)
-                                .font(.footnote)
+                                .font(.body)
                         }
                         .buttonStyle(.plain)
                         .popover(isPresented: $showInvalidPopover) {
@@ -28,7 +28,8 @@ struct ExerciseRow: View {
                         }
                     }
 
-                    TextField("Exercise name", text: $exercise.name)
+                    TextField("Exercise name...", text: $exercise.name)
+                        .font(.title3)
                         .focused(focusedExerciseId, equals: exercise.id)
                         .onChange(of: exercise.name) { _, newValue in
                             let trimmed = String(newValue.drop(while: { $0.isWhitespace }))
@@ -42,6 +43,7 @@ struct ExerciseRow: View {
                             value: jiggle
                         )
                 }
+                .padding(.leading, 4)
 
                 HStack(spacing: 8) {
                     SetsRepsButton(exercise: exercise)
@@ -52,7 +54,6 @@ struct ExerciseRow: View {
 
             ImageButton(exercise: exercise)
         }
-        .padding(.vertical, 8)
     }
 
     func triggerJiggle() {

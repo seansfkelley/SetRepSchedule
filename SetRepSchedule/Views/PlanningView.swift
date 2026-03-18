@@ -45,7 +45,11 @@ struct ExerciseListView: View {
                     .onDelete(perform: deleteExercises)
                 }
                 .listStyle(.plain)
+                .scrollDismissesKeyboard(.interactively)
             }
+        }
+        .onTapGesture {
+            focusedExerciseId = nil
         }
         .safeAreaInset(edge: .bottom, alignment: .trailing) {
             Button {
@@ -107,7 +111,6 @@ struct PlanningView: View {
     var body: some View {
         NavigationStack {
             ExerciseListView(plan: plan)
-
                 .navigationTitle("")
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
