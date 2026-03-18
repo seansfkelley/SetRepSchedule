@@ -10,7 +10,7 @@ struct ExerciseRow: View {
     @State private var jiggle = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             // Main content: name row + set/rep/duration controls
             VStack(alignment: .leading, spacing: 4) {
                 // Name row with optional inline warning icon
@@ -54,17 +54,19 @@ struct ExerciseRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
+            // Camera / image button (first, per swap request)
+            ImageColumn(exercise: exercise)
+
             // Duplicate button
             Button {
                 onDuplicate()
             } label: {
                 Image(systemName: "doc.on.doc")
+                    .font(.system(size: 20))
+                    .frame(width: 44, height: 44)
             }
             .buttonStyle(.glass)
             .buttonBorderShape(.circle)
-
-            // Camera / image button
-            ImageColumn(exercise: exercise)
         }
         .padding(.vertical, 8)
     }
@@ -100,14 +102,16 @@ private struct ImageColumn: View {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 28, height: 28)
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                    .frame(width: 44, height: 44)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
                 Image(systemName: "camera.fill")
+                    .font(.system(size: 20))
+                    .frame(width: 44, height: 44)
             }
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
+        .if(exercise.imageData == nil) { $0.buttonStyle(.glass).buttonBorderShape(.circle) }
+        .if(exercise.imageData != nil) { $0.buttonStyle(.plain) }
         .confirmationDialog("Add Photo", isPresented: $showConfirmationDialog) {
             Button("Take Photo") { showCameraPicker = true }
             Button("Choose from Library") { showPhotosPicker = true }

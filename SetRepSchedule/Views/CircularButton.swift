@@ -11,14 +11,6 @@ struct CircularButton: View {
     }
 }
 
-extension View {
-    func circularGlassButton() -> some View {
-        self
-            .buttonStyle(.glass)
-            .buttonBorderShape(.circle)
-    }
-}
-
 #Preview("Various icons") {
     HStack(spacing: 16) {
         CircularButton(systemImage: "list.bullet")

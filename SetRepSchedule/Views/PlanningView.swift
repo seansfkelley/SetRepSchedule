@@ -30,7 +30,7 @@ struct ExerciseListView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
+        Group {
             if exercises.isEmpty {
                 ContentUnavailableView {
                     Label("No Exercises", systemImage: "figure.walk")
@@ -55,17 +55,17 @@ struct ExerciseListView: View {
                 }
                 .listStyle(.plain)
             }
-
+        }
+        .safeAreaInset(edge: .bottom, alignment: .leading) {
             Button(action: addExercise) {
                 Image(systemName: "plus")
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(.white)
                     .frame(width: 56, height: 56)
-                    .background(Circle().fill(.tint))
-                    .shadow(radius: 4)
+                    .background(Circle().fill(.regularMaterial).shadow(radius: 4))
             }
+            .foregroundStyle(.primary)
             .padding(.leading, 20)
-            .padding(.bottom, 20)
+            .padding(.bottom, 8)
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -190,7 +190,7 @@ struct PlanningView: View {
                     )
                 }
             }
-            .confirmationDialog("Delete \"\(plan.name)\"?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+            .alert("Delete \"\(plan.name)\"?", isPresented: $showDeleteConfirmation) {
                 Button("Delete Plan", role: .destructive) {
                     deletePlan()
                 }

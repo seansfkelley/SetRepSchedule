@@ -69,8 +69,9 @@ struct ContentView: View {
             }
         }
         .onChange(of: plans) { _, newPlans in
-            // If current selection no longer exists, pick the first available plan
-            if selectedPlan == nil {
+            // If the selected plan no longer exists in the updated list, pick the first available
+            let selectionStillExists = newPlans.contains { $0.id == selectedPlanId }
+            if !selectionStillExists {
                 setSelectedPlanId(newPlans.first?.id)
                 if mode == .exercise {
                     mode = .planning
