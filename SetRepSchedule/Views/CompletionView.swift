@@ -7,12 +7,17 @@ struct CompletionView: View {
     var onDone: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text("Workout Complete!")
-                .font(.largeTitle.bold())
-                .padding(.vertical, 24)
+        List {
+            Section {
+                Text("Workout Complete!")
+                    .font(.largeTitle.bold())
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 16)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
 
-            List {
+            Section {
                 ForEach(exercises) { exercise in
                     CompletionRow(
                         exercise: exercise,
@@ -20,15 +25,18 @@ struct CompletionView: View {
                     )
                 }
             }
-            .listStyle(.insetGrouped)
 
-            Button("Return to Planning") {
-                onDone()
+            Section {
+                Button("Return to Planning") {
+                    onDone()
+                }
+                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
-            .buttonStyle(.borderedProminent)
-            .padding(.horizontal)
-            .padding(.bottom)
         }
+        .listStyle(.insetGrouped)
     }
 }
 

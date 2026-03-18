@@ -12,6 +12,18 @@ struct ExerciseView: View {
     @State private var cardOffset: CGFloat = 0
     @State private var cardRotation: Double = 0
     @State private var isAnimatingOut = false
+    @State private var showCompletion = false
+    @State private var screenWidth: CGFloat = 400
+
+    // How far the last card has travelled as a fraction 0→1, used to drive the completion animation.
+    private var dismissProgress: Double {
+        guard showCompletion, screenWidth > 0 else { return 0 }
+        if isCompleted { return 1 }
+        return Double(min(1, -cardOffset / screenWidth))
+    }
+
+    private var completionScale: CGFloat { 0.85 + 0.15 * dismissProgress }
+    private var completionOpacity: Double { dismissProgress }
 
     private var currentExercise: Exercise? {
         guard exerciseIndex < exercises.count else { return nil }
@@ -66,13 +78,17 @@ struct ExerciseView: View {
                 Color(.systemGroupedBackground)
                     .ignoresSafeArea()
 
-                if isCompleted {
+                if showCompletion {
                     CompletionView(
                         exercises: exercises,
                         completedReps: completedReps,
                         onDone: { mode = .planning }
                     )
-                } else if let exercise = currentExercise {
+                    .scaleEffect(completionScale)
+                    .opacity(completionOpacity)
+                }
+
+                if !isCompleted, let exercise = currentExercise {
                     GeometryReader { geo in
                         // Next card: slides in from the right proportionally to the swipe
                         if cardOffset < 0, let next = nextPosition {
@@ -116,10 +132,16 @@ struct ExerciseView: View {
                                         // Leftward drag: follows directly, gentle rotation
                                         cardOffset = translation
                                         cardRotation = translation / 35.0
+                                        if nextPosition == nil {
+                                            showCompletion = true
+                                        }
                                     } else {
                                         // Rightward drag: resist with no rotation
                                         cardOffset = translation * 0.1
                                         cardRotation = 0
+                                        if !isAnimatingOut {
+                                            showCompletion = false
+                                        }
                                     }
                                 }
                                 .onEnded { value in
@@ -136,6 +158,7 @@ struct ExerciseView: View {
                                             cardOffset = 0
                                             cardRotation = 0
                                         }
+                                        showCompletion = false
                                     }
                                 }
                         )
@@ -199,6 +222,10 @@ struct ExerciseView: View {
         guard !isAnimatingOut else { return }
         isAnimatingOut = true
 
+        if nextPosition == nil {
+            showCompletion = true
+        }
+
         withAnimation(.easeIn(duration: 0.3)) {
             cardOffset = -screenWidth - 100
             cardRotation = -8
@@ -228,6 +255,15 @@ struct ExerciseView: View {
     @Previewable @State var mode: AppMode = .exercise
     let container = previewContainer()
     let plan = previewFullPlan(in: container)
+    let exercises = plan.exercises.filter { $0.isValid }.sorted { $0.order < $1.order }
+    return ExerciseView(exercises: exercises, mode: $mode)
+        .modelContainer(container)
+}
+
+#Preview("Exercise mode — short plan") {
+    @Previewable @State var mode: AppMode = .exercise
+    let container = previewContainer()
+    let plan = previewShortPlan(in: container)
     let exercises = plan.exercises.filter { $0.isValid }.sorted { $0.order < $1.order }
     return ExerciseView(exercises: exercises, mode: $mode)
         .modelContainer(container)

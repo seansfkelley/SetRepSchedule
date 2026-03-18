@@ -52,6 +52,17 @@ func previewImageData(color: UIColor, size: CGSize = CGSize(width: 200, height: 
     return image.jpegData(compressionQuality: 0.8)!
 }
 
+/// A short two-exercise plan with images, useful for quickly reaching the completion screen.
+@MainActor
+func previewShortPlan(in container: ModelContainer) -> Plan {
+    let plan = previewPlan(in: container, name: "Short Plan")
+    _ = previewExercise(in: container, plan: plan, order: 1, name: "Push-ups", sets: 1, reps: 3,
+                        imageData: previewImageData(color: .systemBlue))
+    _ = previewExercise(in: container, plan: plan, order: 2, name: "Squats", sets: 1, reps: 3,
+                        imageData: previewImageData(color: .systemOrange))
+    return plan
+}
+
 /// A pre-built plan with several varied exercises, useful for list and full-screen previews.
 @MainActor
 func previewFullPlan(in container: ModelContainer) -> Plan {
