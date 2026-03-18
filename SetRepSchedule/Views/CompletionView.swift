@@ -12,7 +12,6 @@ struct CompletionView: View {
                 Text("Workout Complete!")
                     .font(.largeTitle.bold())
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 16)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             }

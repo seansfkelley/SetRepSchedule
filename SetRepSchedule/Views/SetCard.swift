@@ -25,17 +25,20 @@ struct SetCard: View {
             .padding(.horizontal)
             .padding(.top)
 
-            Spacer()
-
             if let data = imageData, let uiImage = UIImage(data: data) {
+                Spacer()
+
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFit()
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .padding(.horizontal, 32)
-            }
 
-            Spacer()
+                Spacer()
+            } else {
+                Spacer()
+                    .frame(height: 16)
+            }
 
             VStack(spacing: 0) {
                 ProgressView(value: Double(completedReps), total: Double(max(1, reps)))
