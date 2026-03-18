@@ -3,7 +3,7 @@ import PhotosUI
 import SwiftData
 
 struct ImageButton: View {
-    private let imageSize: CGFloat = 44
+    private let imageSize: CGFloat = 60
 
     @Bindable var exercise: Exercise
     @State private var showConfirmationDialog = false
@@ -42,10 +42,10 @@ struct ImageButton: View {
         }
         .buttonStyle(.plain)
         .confirmationDialog("Add Photo", isPresented: $showConfirmationDialog) {
-            Button("Take Photo") { showCameraPicker = true }
-            Button("Choose from Library") { showPhotosPicker = true }
-            Button("Cancel", role: .cancel) {}
-        }
+             Button("Take Photo") { showCameraPicker = true }
+             Button("Choose from Library") { showPhotosPicker = true }
+             Button("Cancel", role: .cancel) {}
+         }
         .photosPicker(isPresented: $showPhotosPicker, selection: $photosPickerItem, matching: .images)
         .onChange(of: photosPickerItem) { _, item in
             Task {
@@ -118,33 +118,40 @@ struct ImageViewSheet: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFit()
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                         .padding()
                 }
                 Spacer()
-                VStack(spacing: 12) {
+                VStack(spacing: 8) {
                     if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                        Button("Take New Photo") {
-                            showCameraPicker = true
+                        Button(action: { showCameraPicker = true }) {
+                            Text("Take New Photo").frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
                     }
-                    Button("Choose from Library") {
-                        showPhotosPicker = true
+                    Button(action: { showPhotosPicker = true }) {
+                        Text("Choose from Library").frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    Button("Remove", role: .destructive) {
+                    Button(role: .destructive, action: {
                         exercise.imageData = nil
                         dismiss()
+                    }) {
+                        Text("Remove").frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
                 }
+                .controlSize(.large)
+                .font(.title3)
                 .padding()
             }
-            .navigationTitle("Photo")
+            .navigationTitle(exercise.name.trimmingCharacters(in: .whitespaces))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
                 }
             }
         }
@@ -170,6 +177,19 @@ struct ImageViewSheet: View {
         }
     }
 }
+#Preview("ImageViewSheet") {
+    let container = previewContainer()
+    let renderer = UIGraphicsImageRenderer(size: CGSize(width: 100, height: 100))
+    let imageData = renderer.jpegData(withCompressionQuality: 0.8) { ctx in
+        UIColor.systemBlue.setFill()
+        ctx.fill(CGRect(x: 0, y: 0, width: 100, height: 100))
+    }
+    let exercise = previewExercise(in: container)
+    exercise.imageData = imageData
+    return ImageViewSheet(exercise: exercise)
+        .modelContainer(container)
+}
+
 #Preview("ImageButton — no image") {
     let container = previewContainer()
     let exercise = previewExercise(in: container)
