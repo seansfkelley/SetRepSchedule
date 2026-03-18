@@ -62,6 +62,8 @@ struct ExerciseListView: View {
             }
             .buttonStyle(.glass)
             .buttonBorderShape(.circle)
+            .padding(.trailing)
+            .padding(.bottom)
         }
     }
 

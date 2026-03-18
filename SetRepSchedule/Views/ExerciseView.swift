@@ -114,7 +114,8 @@ struct ExerciseView: View {
                                 onAdvance: {}
                             )
                             .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
+                            .frame(maxHeight: geo.size.height - 24)
+                            .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
                             .offset(x: geo.size.width + cardOffset)
                             .allowsHitTesting(false)
                         }
@@ -131,7 +132,8 @@ struct ExerciseView: View {
                             onAdvance: advanceCard
                         )
                         .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
+                        .frame(maxHeight: geo.size.height - 24)
+                        .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
                         .offset(x: cardOffset)
                         .rotationEffect(.degrees(cardRotation))
                         .gesture(
