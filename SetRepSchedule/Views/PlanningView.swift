@@ -29,7 +29,6 @@ struct ExerciseListView: View {
                         ExerciseRow(
                             exercise: exercise,
                             focusedExerciseId: $focusedExerciseId,
-                            onDuplicate: { duplicateExercise(exercise) }
                         )
                     }
                     .onMove(perform: moveExercises)
@@ -58,41 +57,6 @@ struct ExerciseListView: View {
         let exercise = Exercise(plan: plan, order: order)
         modelContext.insert(exercise)
         focusedExerciseId = exercise.id
-    }
-
-    private func duplicateExercise(_ source: Exercise) {
-        let sortedExercises = plan.exercises  // already sorted by @Query
-        guard let idx = sortedExercises.firstIndex(where: { $0.id == source.id }) else { return }
-        let next = idx + 1 < sortedExercises.count ? sortedExercises[idx + 1] : nil
-        let newOrder: Double
-        if let next {
-            let gap = next.order - source.order
-            if gap < 1e-10 {
-                renumberExercises(sortedExercises)
-                // After renumber, recalculate based on updated values
-                let updated = plan.exercises
-                if let s = updated.first(where: { $0.id == source.id }),
-                   let n = updated.first(where: { $0.id == next.id }) {
-                    newOrder = (s.order + n.order) / 2
-                } else {
-                    newOrder = source.order + 1.0
-                }
-            } else {
-                newOrder = (source.order + next.order) / 2
-            }
-        } else {
-            newOrder = source.order + 1.0
-        }
-        let copy = Exercise(
-            plan: plan,
-            order: newOrder,
-            name: source.name,
-            sets: source.sets,
-            reps: source.reps,
-            durationSeconds: source.durationSeconds,
-            imageData: source.imageData
-        )
-        modelContext.insert(copy)
     }
 
     private func moveExercises(from source: IndexSet, to destination: Int) {

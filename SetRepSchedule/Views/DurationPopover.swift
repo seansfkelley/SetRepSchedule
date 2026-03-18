@@ -9,7 +9,7 @@ struct DurationPopover: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Duration")
+            Text("Rep Duration")
                 .font(.headline)
             HStack(spacing: 0) {
                 Picker("Minutes", selection: $minutes) {

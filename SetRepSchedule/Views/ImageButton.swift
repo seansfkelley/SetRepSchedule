@@ -2,6 +2,72 @@ import SwiftUI
 import PhotosUI
 import SwiftData
 
+struct ImageButton: View {
+    private let imageSize: CGFloat = 44
+
+    @Bindable var exercise: Exercise
+    @State private var showConfirmationDialog = false
+    @State private var showPhotosPicker = false
+    @State private var showCameraPicker = false
+    @State private var showImageSheet = false
+    @State private var photosPickerItem: PhotosPickerItem?
+
+    var body: some View {
+        Button {
+            if exercise.imageData != nil {
+                showImageSheet = true
+            } else if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                showConfirmationDialog = true
+            } else {
+                showPhotosPicker = true
+            }
+        } label: {
+            if let data = exercise.imageData, let uiImage = UIImage(data: data) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: imageSize, height: imageSize)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [4]))
+                    .foregroundStyle(.secondary)
+                    .frame(width: imageSize, height: imageSize)
+                    .overlay {
+                        Image(systemName: "camera")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.secondary)
+                    }
+            }
+        }
+        .buttonStyle(.plain)
+        .confirmationDialog("Add Photo", isPresented: $showConfirmationDialog) {
+            Button("Take Photo") { showCameraPicker = true }
+            Button("Choose from Library") { showPhotosPicker = true }
+            Button("Cancel", role: .cancel) {}
+        }
+        .photosPicker(isPresented: $showPhotosPicker, selection: $photosPickerItem, matching: .images)
+        .onChange(of: photosPickerItem) { _, item in
+            Task {
+                if let data = try? await item?.loadTransferable(type: Data.self) {
+                    exercise.imageData = data
+                }
+                photosPickerItem = nil
+            }
+        }
+        .fullScreenCover(isPresented: $showCameraPicker) {
+            CameraImagePicker { data in
+                if let data { exercise.imageData = data }
+                showCameraPicker = false
+            }
+            .ignoresSafeArea()
+        }
+        .sheet(isPresented: $showImageSheet) {
+            ImageViewSheet(exercise: exercise)
+        }
+    }
+}
+
 struct CameraImagePicker: UIViewControllerRepresentable {
     var onImagePicked: (Data?) -> Void
 
@@ -34,66 +100,6 @@ struct CameraImagePicker: UIViewControllerRepresentable {
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             onImagePicked(nil)
             picker.dismiss(animated: true)
-        }
-    }
-}
-
-struct ImageButton: View {
-    @Bindable var exercise: Exercise
-    @State private var showConfirmationDialog = false
-    @State private var showPhotosPicker = false
-    @State private var showCameraPicker = false
-    @State private var showImageSheet = false
-    @State private var photosPickerItem: PhotosPickerItem?
-
-    var body: some View {
-        Button {
-            if exercise.imageData != nil {
-                showImageSheet = true
-            } else {
-                if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                    showConfirmationDialog = true
-                } else {
-                    showPhotosPicker = true
-                }
-            }
-        } label: {
-            if let data = exercise.imageData, let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 32, height: 32)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-            } else {
-                Image(systemName: "camera.fill")
-            }
-        }
-        .buttonStyle(.bordered)
-        .confirmationDialog("Add Photo", isPresented: $showConfirmationDialog) {
-            Button("Take Photo") { showCameraPicker = true }
-            Button("Choose from Library") { showPhotosPicker = true }
-            Button("Cancel", role: .cancel) {}
-        }
-        .photosPicker(isPresented: $showPhotosPicker, selection: $photosPickerItem, matching: .images)
-        .onChange(of: photosPickerItem) { _, item in
-            Task {
-                if let data = try? await item?.loadTransferable(type: Data.self) {
-                    exercise.imageData = data
-                }
-                photosPickerItem = nil
-            }
-        }
-        .fullScreenCover(isPresented: $showCameraPicker) {
-            CameraImagePicker { data in
-                if let data {
-                    exercise.imageData = data
-                }
-                showCameraPicker = false
-            }
-            .ignoresSafeArea()
-        }
-        .sheet(isPresented: $showImageSheet) {
-            ImageViewSheet(exercise: exercise)
         }
     }
 }

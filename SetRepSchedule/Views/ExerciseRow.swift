@@ -5,21 +5,18 @@ import PhotosUI
 struct ExerciseRow: View {
     @Bindable var exercise: Exercise
     var focusedExerciseId: FocusState<UUID?>.Binding
-    var onDuplicate: () -> Void
     @State private var showInvalidPopover = false
     @State private var jiggle = false
 
     var body: some View {
         HStack(spacing: 8) {
-            // Main content: name row + set/rep/duration controls
-            VStack(alignment: .leading, spacing: 4) {
-                // Name row with optional inline warning icon
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
                     if !exercise.isValid {
                         Button {
                             showInvalidPopover = true
                         } label: {
-                            Image(systemName: "exclamationmark.triangle.fill")
+                            Image(systemName: "exclamationmark.triangle")
                                 .foregroundStyle(.red)
                                 .font(.footnote)
                         }
@@ -46,7 +43,6 @@ struct ExerciseRow: View {
                         )
                 }
 
-                // Sets/reps and duration controls
                 HStack(spacing: 8) {
                     SetsRepsButton(exercise: exercise)
                     DurationButton(exercise: exercise)
@@ -54,19 +50,7 @@ struct ExerciseRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Camera / image button (first, per swap request)
-            ImageColumn(exercise: exercise)
-
-            // Duplicate button
-            Button {
-                onDuplicate()
-            } label: {
-                Image(systemName: "doc.on.doc")
-                    .font(.system(size: 20))
-                    .frame(width: 44, height: 44)
-            }
-            .buttonStyle(.glass)
-            .buttonBorderShape(.circle)
+            ImageButton(exercise: exercise)
         }
         .padding(.vertical, 8)
     }
@@ -79,72 +63,12 @@ struct ExerciseRow: View {
     }
 }
 
-// Extracted so the confirmation dialog / sheets attach cleanly to a contained view
-private struct ImageColumn: View {
-    @Bindable var exercise: Exercise
-    @State private var showConfirmationDialog = false
-    @State private var showPhotosPicker = false
-    @State private var showCameraPicker = false
-    @State private var showImageSheet = false
-    @State private var photosPickerItem: PhotosPickerItem?
-
-    var body: some View {
-        Button {
-            if exercise.imageData != nil {
-                showImageSheet = true
-            } else if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                showConfirmationDialog = true
-            } else {
-                showPhotosPicker = true
-            }
-        } label: {
-            if let data = exercise.imageData, let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 44, height: 44)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            } else {
-                Image(systemName: "camera.fill")
-                    .font(.system(size: 20))
-                    .frame(width: 44, height: 44)
-            }
-        }
-        .if(exercise.imageData == nil) { $0.buttonStyle(.glass).buttonBorderShape(.circle) }
-        .if(exercise.imageData != nil) { $0.buttonStyle(.plain) }
-        .confirmationDialog("Add Photo", isPresented: $showConfirmationDialog) {
-            Button("Take Photo") { showCameraPicker = true }
-            Button("Choose from Library") { showPhotosPicker = true }
-            Button("Cancel", role: .cancel) {}
-        }
-        .photosPicker(isPresented: $showPhotosPicker, selection: $photosPickerItem, matching: .images)
-        .onChange(of: photosPickerItem) { _, item in
-            Task {
-                if let data = try? await item?.loadTransferable(type: Data.self) {
-                    exercise.imageData = data
-                }
-                photosPickerItem = nil
-            }
-        }
-        .fullScreenCover(isPresented: $showCameraPicker) {
-            CameraImagePicker { data in
-                if let data { exercise.imageData = data }
-                showCameraPicker = false
-            }
-            .ignoresSafeArea()
-        }
-        .sheet(isPresented: $showImageSheet) {
-            ImageViewSheet(exercise: exercise)
-        }
-    }
-}
-
 // Preview wrapper — owns the @FocusState that ExerciseRow requires.
 private struct ExerciseRowPreviewWrapper: View {
     var exercise: Exercise
     @FocusState private var focused: UUID?
     var body: some View {
-        ExerciseRow(exercise: exercise, focusedExerciseId: $focused, onDuplicate: {})
+        ExerciseRow(exercise: exercise, focusedExerciseId: $focused)
     }
 }
 
