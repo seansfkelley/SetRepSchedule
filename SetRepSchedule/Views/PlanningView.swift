@@ -38,13 +38,17 @@ struct ExerciseListView: View {
                 .listStyle(.plain)
             }
         }
-        .toolbar {
-            ToolbarItem(placement: .bottomBar) {
-                Spacer()
-                Button { addExercise() } label: {
-                    Image(systemName: "plus")
-                }
+        .safeAreaInset(edge: .bottom, alignment: .trailing) {
+            Button {
+                addExercise()
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .padding(8)
             }
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
         }
 
     }
