@@ -111,8 +111,11 @@ struct ExerciseView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if isCompleted {
-                        Button("Done") {
+                        Button {
                             mode = .planning
+                        } label: {
+                            Label("Return", systemImage: "chevron.left")
+                                .labelStyle(.titleAndIcon)
                         }
                     } else if isConfirmingExit {
                         Button("End Exercises") {

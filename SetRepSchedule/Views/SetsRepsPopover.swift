@@ -5,9 +5,44 @@ struct SetsRepsPopover: View {
     @Bindable var exercise: Exercise
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Stepper("Sets: \(exercise.sets)", value: $exercise.sets, in: 1...Int.max)
-            Stepper("Reps: \(exercise.reps)", value: $exercise.reps, in: 1...Int.max)
+        HStack(spacing: 0) {
+            VStack(spacing: 0) {
+                Text("Sets")
+                    .font(.body)
+                    .fontWeight(.semibold)
+                Picker("Sets", selection: $exercise.sets) {
+                    ForEach(1...20, id: \.self) { i in
+                        Text("\(i)").tag(i)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(width: 80)
+            }
+
+            VStack(spacing: 0) {
+                Text("×")
+                    .font(.body)
+                    .fontWeight(.semibold)
+                Picker("×", selection: .constant(0)) {
+                    Text("0").tag(0)
+                }
+                .pickerStyle(.wheel)
+                .frame(width: 10)
+                .hidden()
+            }
+
+            VStack(spacing: 0) {
+                Text("Reps")
+                    .font(.body)
+                    .fontWeight(.semibold)
+                Picker("Reps", selection: $exercise.reps) {
+                    ForEach(1...50, id: \.self) { i in
+                        Text("\(i)").tag(i)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(width: 80)
+            }
         }
         .padding()
         .presentationCompactAdaptation(.popover)

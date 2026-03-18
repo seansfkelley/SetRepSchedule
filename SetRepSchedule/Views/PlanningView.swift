@@ -22,7 +22,7 @@ struct ExerciseListView: View {
     }
 
     var body: some View {
-        ZStack {
+        Group {
             if exercises.isEmpty {
                 ContentUnavailableView {
                     Label("No Exercises", systemImage: "figure.walk")
@@ -44,7 +44,7 @@ struct ExerciseListView: View {
                     .onMove(perform: moveExercises)
                     .onDelete(perform: deleteExercises)
                 }
-                .listStyle(.plain)
+                .listStyle(.insetGrouped)
                 .scrollDismissesKeyboard(.interactively)
             }
         }
@@ -69,10 +69,7 @@ struct ExerciseListView: View {
         let order = (exercises.last?.order ?? 0) + 1.0
         let exercise = Exercise(plan: plan, order: order)
         modelContext.insert(exercise)
-        let id = exercise.id
-        Task { @MainActor in
-            focusedExerciseId = id
-        }
+        focusedExerciseId = exercise.id
     }
 
     private func moveExercises(from source: IndexSet, to destination: Int) {
@@ -112,6 +109,7 @@ struct PlanningView: View {
         NavigationStack {
             ExerciseListView(plan: plan)
                 .navigationTitle("")
+            .toolbarBackground(.visible, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {

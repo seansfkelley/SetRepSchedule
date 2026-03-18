@@ -10,8 +10,7 @@ struct CompletionView: View {
         VStack(spacing: 0) {
             Text("Workout Complete!")
                 .font(.largeTitle.bold())
-                .padding(.top, 40)
-                .padding(.bottom, 24)
+                .padding(.vertical, 24)
 
             List {
                 ForEach(exercises) { exercise in
@@ -27,23 +26,21 @@ struct CompletionView: View {
                 onDone()
             }
             .buttonStyle(.borderedProminent)
-            .padding()
-        }
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button("Done") {
-                    onDone()
-                }
-            }
+            .padding(.horizontal)
+            .padding(.bottom)
         }
     }
 }
 
 struct CompletionRow: View {
+    private let imageSize: CGFloat = 44
+
     var exercise: Exercise
     var repCounts: [Int]  // one entry per set, value = completed reps
 
-    private var totalExpected: Int { exercise.sets * exercise.reps }
+    private var totalExpected: Int {
+        exercise.sets * exercise.reps
+    }
 
     private var totalCompleted: Int {
         repCounts.reduce(0, +)
@@ -65,17 +62,28 @@ struct CompletionRow: View {
                 .font(.title3)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(exercise.name.isEmpty ? "Exercise" : exercise.name)
+                Text(exercise.name.isEmpty ? "Unnamed Exercise" : exercise.name)
                     .font(.body)
-                Text("\(exercise.sets) sets × \(exercise.reps) reps")
+                    .if(exercise.name.isEmpty) { view in
+                        view.foregroundStyle(.secondary)
+                    }
+                Text("^[\(exercise.sets) set](inflect: true) × ^[\(exercise.reps) rep](inflect: true)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            if let data = exercise.imageData, let uiImage = UIImage(data: data) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: imageSize, height: imageSize)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
             Spacer()
 
             Text("\(Int(completionFraction * 100))%")
-                .font(.subheadline.monospacedDigit())
+                .font(.title2.monospacedDigit())
                 .foregroundStyle(isFullyComplete ? .green : .red)
         }
     }
