@@ -10,3 +10,14 @@ struct CircularButton: View {
             .background(Circle().fill(.regularMaterial))
     }
 }
+
+#Preview("Various icons") {
+    HStack(spacing: 16) {
+        CircularButton(systemImage: "list.bullet")
+        CircularButton(systemImage: "play.fill")
+            .tint(.green)
+        CircularButton(systemImage: "chevron.left")
+        CircularButton(systemImage: "play.slash.fill")
+    }
+    .padding()
+}

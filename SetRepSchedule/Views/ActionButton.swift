@@ -124,3 +124,42 @@ struct ActionButton: View {
         remainingSeconds = durationSeconds ?? 0
     }
 }
+
+#Preview("No timer — mid-set") {
+    @Previewable @State var reps = 4
+    ActionButton(
+        exerciseName: "Squats",
+        setIndex: 1,
+        totalSets: 3,
+        reps: 12,
+        durationSeconds: nil,
+        completedReps: $reps,
+        onAdvance: {}
+    )
+}
+
+#Preview("No timer — last rep of last set") {
+    @Previewable @State var reps = 11
+    ActionButton(
+        exerciseName: "Push-ups",
+        setIndex: 2,
+        totalSets: 3,
+        reps: 12,
+        durationSeconds: nil,
+        completedReps: $reps,
+        onAdvance: {}
+    )
+}
+
+#Preview("Timer — idle") {
+    @Previewable @State var reps = 0
+    ActionButton(
+        exerciseName: "Plank Hold",
+        setIndex: 0,
+        totalSets: 3,
+        reps: 1,
+        durationSeconds: 60,
+        completedReps: $reps,
+        onAdvance: {}
+    )
+}

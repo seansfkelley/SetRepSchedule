@@ -164,3 +164,26 @@ struct ImageViewSheet: View {
         }
     }
 }
+#Preview("ImageButton — no image") {
+    let container = previewContainer()
+    let exercise = previewExercise(in: container)
+    return ImageButton(exercise: exercise)
+        .padding()
+        .modelContainer(container)
+}
+
+#Preview("ImageButton — with image") {
+    let container = previewContainer()
+    // Draw a simple colored square as stand-in image data
+    let renderer = UIGraphicsImageRenderer(size: CGSize(width: 100, height: 100))
+    let imageData = renderer.jpegData(withCompressionQuality: 0.8) { ctx in
+        UIColor.systemBlue.setFill()
+        ctx.fill(CGRect(x: 0, y: 0, width: 100, height: 100))
+    }
+    let exercise = previewExercise(in: container)
+    exercise.imageData = imageData
+    return ImageButton(exercise: exercise)
+        .padding()
+        .modelContainer(container)
+}
+

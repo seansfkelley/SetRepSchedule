@@ -55,3 +55,51 @@ struct SetCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
+
+#Preview("No timer — mid-set") {
+    @Previewable @State var reps = 3
+    SetCard(
+        exerciseName: "Squats",
+        setIndex: 1,
+        totalSets: 3,
+        reps: 12,
+        durationSeconds: nil,
+        imageData: nil,
+        completedReps: $reps,
+        onAdvance: {}
+    )
+    .padding()
+    .background(Color(.systemGroupedBackground))
+}
+
+#Preview("With timer — idle") {
+    @Previewable @State var reps = 0
+    SetCard(
+        exerciseName: "Plank Hold",
+        setIndex: 0,
+        totalSets: 3,
+        reps: 1,
+        durationSeconds: 60,
+        imageData: nil,
+        completedReps: $reps,
+        onAdvance: {}
+    )
+    .padding()
+    .background(Color(.systemGroupedBackground))
+}
+
+#Preview("Last set — last rep") {
+    @Previewable @State var reps = 11
+    SetCard(
+        exerciseName: "Lunges",
+        setIndex: 2,
+        totalSets: 3,
+        reps: 12,
+        durationSeconds: nil,
+        imageData: nil,
+        completedReps: $reps,
+        onAdvance: {}
+    )
+    .padding()
+    .background(Color(.systemGroupedBackground))
+}

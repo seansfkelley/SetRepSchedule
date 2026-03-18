@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 struct ExerciseView: View {
     var exercises: [Exercise]
@@ -183,4 +184,22 @@ struct ExerciseView: View {
             setIndex = 0
         }
     }
+}
+
+#Preview("Exercise mode — first card") {
+    @Previewable @State var mode: AppMode = .exercise
+    let container = previewContainer()
+    let plan = previewFullPlan(in: container)
+    let exercises = plan.exercises.filter { $0.isValid }.sorted { $0.order < $1.order }
+    return ExerciseView(exercises: exercises, mode: $mode)
+        .modelContainer(container)
+}
+
+#Preview("Exercise mode — timed exercise") {
+    @Previewable @State var mode: AppMode = .exercise
+    let container = previewContainer()
+    let e1 = previewExercise(in: container, order: 1, name: "Plank Hold", sets: 3, reps: 1, durationSeconds: 60)
+    let e2 = previewExercise(in: container, order: 2, name: "Wall Sit", sets: 3, reps: 1, durationSeconds: 45)
+    return ExerciseView(exercises: [e1, e2], mode: $mode)
+        .modelContainer(container)
 }

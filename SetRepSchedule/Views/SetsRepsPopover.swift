@@ -36,3 +36,18 @@ struct SetsRepsButton: View {
         }
     }
 }
+
+#Preview("SetsRepsButton") {
+    let container = previewContainer()
+    let exercise = previewExercise(in: container, sets: 3, reps: 12)
+    return SetsRepsButton(exercise: exercise)
+        .padding()
+        .modelContainer(container)
+}
+
+#Preview("SetsRepsPopover") {
+    let container = previewContainer()
+    let exercise = previewExercise(in: container, sets: 4, reps: 8)
+    return SetsRepsPopover(exercise: exercise)
+        .modelContainer(container)
+}

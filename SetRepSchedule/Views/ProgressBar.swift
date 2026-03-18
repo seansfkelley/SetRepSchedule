@@ -15,3 +15,25 @@ struct ProgressBar: View {
         }
     }
 }
+
+#Preview("Progress states") {
+    VStack(spacing: 20) {
+        VStack(alignment: .leading) {
+            Text("Empty (0%)").font(.caption)
+            ProgressBar(value: 0).frame(height: 6)
+        }
+        VStack(alignment: .leading) {
+            Text("One third (33%)").font(.caption)
+            ProgressBar(value: 0.33).frame(height: 6)
+        }
+        VStack(alignment: .leading) {
+            Text("Two thirds (67%)").font(.caption)
+            ProgressBar(value: 0.67).frame(height: 6)
+        }
+        VStack(alignment: .leading) {
+            Text("Complete (100%)").font(.caption)
+            ProgressBar(value: 1.0).frame(height: 6)
+        }
+    }
+    .padding()
+}

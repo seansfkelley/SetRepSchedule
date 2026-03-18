@@ -59,3 +59,42 @@ struct ExerciseRow: View {
         }
     }
 }
+
+// Preview wrapper — owns the @FocusState that ExerciseRow requires.
+private struct ExerciseRowPreviewWrapper: View {
+    var exercise: Exercise
+    @FocusState private var focused: UUID?
+    var body: some View {
+        ExerciseRow(exercise: exercise, focusedExerciseId: $focused, onDuplicate: {})
+    }
+}
+
+#Preview("Valid exercise") {
+    let container = previewContainer()
+    let exercise = previewExercise(in: container, name: "Squats", sets: 3, reps: 12)
+    return List {
+        ExerciseRowPreviewWrapper(exercise: exercise)
+    }
+    .listStyle(.plain)
+    .modelContainer(container)
+}
+
+#Preview("With timer") {
+    let container = previewContainer()
+    let exercise = previewExercise(in: container, name: "Plank Hold", sets: 3, reps: 1, durationSeconds: 60)
+    return List {
+        ExerciseRowPreviewWrapper(exercise: exercise)
+    }
+    .listStyle(.plain)
+    .modelContainer(container)
+}
+
+#Preview("Invalid — no name") {
+    let container = previewContainer()
+    let exercise = previewExercise(in: container, name: "")
+    return List {
+        ExerciseRowPreviewWrapper(exercise: exercise)
+    }
+    .listStyle(.plain)
+    .modelContainer(container)
+}

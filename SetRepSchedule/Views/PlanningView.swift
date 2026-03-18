@@ -214,3 +214,27 @@ struct PlanningView: View {
         selectedPlanId = remaining.first?.id
     }
 }
+
+private struct PlanningViewPreview: View {
+    var plan: Plan
+    @State private var mode: AppMode = .planning
+    @State private var selectedId: UUID?
+    var body: some View {
+        PlanningView(plan: plan, mode: $mode, selectedPlanId: $selectedId)
+            .onAppear { selectedId = plan.id }
+    }
+}
+
+#Preview("With exercises") {
+    let container = previewContainer()
+    let plan = previewFullPlan(in: container)
+    return PlanningViewPreview(plan: plan)
+        .modelContainer(container)
+}
+
+#Preview("Empty plan") {
+    let container = previewContainer()
+    let plan = previewPlan(in: container, name: "Morning Routine")
+    return PlanningViewPreview(plan: plan)
+        .modelContainer(container)
+}

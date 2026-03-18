@@ -81,3 +81,27 @@ struct DurationButton: View {
         }
     }
 }
+
+#Preview("DurationButton — unset") {
+    let container = previewContainer()
+    let exercise = previewExercise(in: container)
+    return DurationButton(exercise: exercise)
+        .padding()
+        .modelContainer(container)
+}
+
+#Preview("DurationButton — 1:30") {
+    let container = previewContainer()
+    let exercise = previewExercise(in: container, durationSeconds: 90)
+    return DurationButton(exercise: exercise)
+        .padding()
+        .modelContainer(container)
+}
+
+#Preview("DurationPopover — pre-filled") {
+    @Previewable @State var isPresented = true
+    let container = previewContainer()
+    let exercise = previewExercise(in: container, durationSeconds: 75)
+    return DurationPopover(exercise: exercise, isPresented: $isPresented)
+        .modelContainer(container)
+}
