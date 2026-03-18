@@ -24,10 +24,8 @@ struct SetsRepsButton: View {
         } label: {
             Text("\(exercise.sets) × \(exercise.reps)")
                 .font(.subheadline.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
         .popover(isPresented: $showPopover) {
             SetsRepsPopover(exercise: exercise)
         }

@@ -68,18 +68,14 @@ struct DurationButton: View {
         Button {
             showPopover = true
         } label: {
-            Group {
-                if let label = durationLabel {
-                    Text(label)
-                        .font(.subheadline.monospacedDigit())
-                } else {
-                    Image(systemName: "clock")
-                }
+            if let label = durationLabel {
+                Text(label)
+                    .font(.subheadline.monospacedDigit())
+            } else {
+                Image(systemName: "clock")
             }
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
         .popover(isPresented: $showPopover) {
             DurationPopover(exercise: exercise, isPresented: $showPopover)
         }

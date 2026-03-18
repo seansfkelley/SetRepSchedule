@@ -49,7 +49,6 @@ struct ExerciseListView: View {
                             focusedExerciseId: $focusedExerciseId,
                             onDuplicate: { duplicateExercise(exercise) }
                         )
-                        .listRowInsets(EdgeInsets())
                     }
                     .onMove(perform: moveExercises)
                     .onDelete(perform: deleteExercises)

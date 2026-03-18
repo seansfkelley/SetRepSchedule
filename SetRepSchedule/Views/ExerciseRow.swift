@@ -10,77 +10,63 @@ struct ExerciseRow: View {
     @State private var jiggle = false
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Col 1: warning icon (only when invalid)
-            if !exercise.isValid {
-                Button {
-                    showInvalidPopover = true
-                } label: {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                        .frame(width: 32)
-                }
-                .buttonStyle(.plain)
-                .popover(isPresented: $showInvalidPopover) {
-                    Text("A name or picture is required.")
-                        .padding()
-                        .presentationCompactAdaptation(.popover)
-                }
-            }
-
-            // Col 2: name + set/rep/duration controls
-            VStack(alignment: .leading, spacing: 0) {
-                TextField("Exercise name", text: $exercise.name)
-                    .focused(focusedExerciseId, equals: exercise.id)
-                    .onChange(of: exercise.name) { _, newValue in
-                        let trimmed = String(newValue.drop(while: { $0.isWhitespace }))
-                        if trimmed != newValue {
-                            exercise.name = trimmed
+        HStack(spacing: 12) {
+            // Main content: name row + set/rep/duration controls
+            VStack(alignment: .leading, spacing: 4) {
+                // Name row with optional inline warning icon
+                HStack(spacing: 6) {
+                    if !exercise.isValid {
+                        Button {
+                            showInvalidPopover = true
+                        } label: {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.red)
+                                .font(.footnote)
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showInvalidPopover) {
+                            Text("A name or picture is required.")
+                                .padding()
+                                .presentationCompactAdaptation(.popover)
                         }
                     }
-                    .rotationEffect(.degrees(jiggle ? 2 : 0))
-                    .animation(
-                        jiggle ? .easeInOut(duration: 0.08).repeatCount(4, autoreverses: true) : .default,
-                        value: jiggle
-                    )
-                    .padding(.horizontal, 16)
-                    .padding(.top, 10)
-                    .padding(.bottom, 6)
 
-                Divider()
-
-                // Sets/reps and duration buttons, edge-to-edge in their row
-                HStack(spacing: 0) {
-                    SetsRepsButton(exercise: exercise)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    Divider()
-
-                    DurationButton(exercise: exercise)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    TextField("Exercise name", text: $exercise.name)
+                        .focused(focusedExerciseId, equals: exercise.id)
+                        .onChange(of: exercise.name) { _, newValue in
+                            let trimmed = String(newValue.drop(while: { $0.isWhitespace }))
+                            if trimmed != newValue {
+                                exercise.name = trimmed
+                            }
+                        }
+                        .rotationEffect(.degrees(jiggle ? 2 : 0))
+                        .animation(
+                            jiggle ? .easeInOut(duration: 0.08).repeatCount(4, autoreverses: true) : .default,
+                            value: jiggle
+                        )
                 }
-                .frame(height: 36)
-                .padding(.bottom, 2)
-            }
-            .frame(maxWidth: .infinity)
 
-            // Col 3: duplicate
-            Divider()
+                // Sets/reps and duration controls
+                HStack(spacing: 8) {
+                    SetsRepsButton(exercise: exercise)
+                    DurationButton(exercise: exercise)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Duplicate button
             Button {
                 onDuplicate()
             } label: {
                 Image(systemName: "doc.on.doc")
-                    .frame(width: 44)
-                    .frame(maxHeight: .infinity)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
 
-            // Col 4: camera
-            Divider()
+            // Camera / image button
             ImageColumn(exercise: exercise)
         }
-        .fixedSize(horizontal: false, vertical: true)
+        .padding(.vertical, 8)
     }
 
     func triggerJiggle() {
@@ -116,16 +102,12 @@ private struct ImageColumn: View {
                     .scaledToFill()
                     .frame(width: 28, height: 28)
                     .clipShape(RoundedRectangle(cornerRadius: 5))
-                    .frame(width: 44)
-                    .frame(maxHeight: .infinity)
             } else {
                 Image(systemName: "camera.fill")
-                    .frame(width: 44)
-                    .frame(maxHeight: .infinity)
             }
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(.secondary)
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
         .confirmationDialog("Add Photo", isPresented: $showConfirmationDialog) {
             Button("Take Photo") { showCameraPicker = true }
             Button("Choose from Library") { showPhotosPicker = true }
@@ -167,9 +149,7 @@ private struct ExerciseRowPreviewWrapper: View {
     let exercise = previewExercise(in: container, name: "Squats", sets: 3, reps: 12)
     return List {
         ExerciseRowPreviewWrapper(exercise: exercise)
-            .listRowInsets(EdgeInsets())
     }
-    .listStyle(.plain)
     .modelContainer(container)
 }
 
@@ -178,9 +158,7 @@ private struct ExerciseRowPreviewWrapper: View {
     let exercise = previewExercise(in: container, name: "Plank Hold", sets: 3, reps: 1, durationSeconds: 60)
     return List {
         ExerciseRowPreviewWrapper(exercise: exercise)
-            .listRowInsets(EdgeInsets())
     }
-    .listStyle(.plain)
     .modelContainer(container)
 }
 
@@ -189,9 +167,7 @@ private struct ExerciseRowPreviewWrapper: View {
     let exercise = previewExercise(in: container, name: "")
     return List {
         ExerciseRowPreviewWrapper(exercise: exercise)
-            .listRowInsets(EdgeInsets())
     }
-    .listStyle(.plain)
     .modelContainer(container)
 }
 
@@ -202,9 +178,7 @@ private struct ExerciseRowPreviewWrapper: View {
     return List {
         ForEach(exercises) { ex in
             ExerciseRowPreviewWrapper(exercise: ex)
-                .listRowInsets(EdgeInsets())
         }
     }
-    .listStyle(.plain)
     .modelContainer(container)
 }
