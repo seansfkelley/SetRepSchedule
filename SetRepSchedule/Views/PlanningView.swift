@@ -30,7 +30,7 @@ struct ExerciseListView: View {
                     Text("Add exercises to this plan.")
                 } actions: {
                     Button("Add Exercise") {
-                        addExercise()
+                        addExerciseToEnd()
                     }
                 }
             } else {
@@ -53,7 +53,7 @@ struct ExerciseListView: View {
         }
         .safeAreaInset(edge: .bottom, alignment: .trailing) {
             Button {
-                addExercise()
+                addExerciseToEnd()
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 16, weight: .semibold))
@@ -67,7 +67,7 @@ struct ExerciseListView: View {
         }
     }
 
-    private func addExercise() {
+    private func addExerciseToEnd() {
         let order = (exercises.last?.order ?? 0) + 1.0
         let exercise = Exercise(plan: plan, order: order)
         modelContext.insert(exercise)
@@ -85,12 +85,6 @@ struct ExerciseListView: View {
     private func deleteExercises(at offsets: IndexSet) {
         for idx in offsets {
             modelContext.delete(exercises[idx])
-        }
-    }
-
-    private func renumberExercises(_ list: [Exercise]) {
-        for (i, exercise) in list.enumerated() {
-            exercise.order = Double(i + 1)
         }
     }
 }
