@@ -6,32 +6,14 @@ enum AppMode {
     case exercise
 }
 
-// A child view that owns a dynamically-filtered @Query for exercises in one plan.
-// @Query predicates must be fixed at init time, so we pass the plan ID at init.
 struct ExerciseListView: View {
-    @Query private var exercises: [Exercise]
     @Environment(\.modelContext) private var modelContext
     @FocusState private var focusedExerciseId: UUID?
     var plan: Plan
-    var onPlayTapped: ([Exercise]) -> Void
-
-    init(plan: Plan, onPlayTapped: @escaping ([Exercise]) -> Void) {
-        self.plan = plan
-        self.onPlayTapped = onPlayTapped
-        let planId = plan.id
-        _exercises = Query(
-            filter: #Predicate<Exercise> { $0.plan?.id == planId },
-            sort: \.order
-        )
-    }
-
-    var hasInvalidExercises: Bool {
-        exercises.contains { !$0.isValid }
-    }
 
     var body: some View {
-        Group {
-            if exercises.isEmpty {
+        ZStack {
+            if plan.exercises.isEmpty {
                 ContentUnavailableView {
                     Label("No Exercises", systemImage: "figure.walk")
                 } description: {
@@ -43,7 +25,7 @@ struct ExerciseListView: View {
                 }
             } else {
                 List {
-                    ForEach(exercises) { exercise in
+                    ForEach(plan.exercises) { exercise in
                         ExerciseRow(
                             exercise: exercise,
                             focusedExerciseId: $focusedExerciseId,
@@ -56,49 +38,26 @@ struct ExerciseListView: View {
                 .listStyle(.plain)
             }
         }
-        .safeAreaInset(edge: .bottom, alignment: .leading) {
-            Button(action: addExercise) {
-                Image(systemName: "plus")
-                    .font(.title2.weight(.semibold))
-                    .frame(width: 56, height: 56)
-                    .background(Circle().fill(.regularMaterial).shadow(radius: 4))
-            }
-            .foregroundStyle(.primary)
-            .padding(.leading, 20)
-            .padding(.bottom, 8)
-        }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    playTapped()
-                } label: {
-                    CircularButton(systemImage: hasInvalidExercises ? "play.slash.fill" : "play.fill")
-                        .tint(.green)
+            ToolbarItem(placement: .bottomBar) {
+                Spacer()
+                Button { addExercise() } label: {
+                    Image(systemName: "plus")
                 }
-                .circularGlassButton()
             }
         }
-    }
 
-    private func playTapped() {
-        guard !exercises.isEmpty else { return }
-        if hasInvalidExercises {
-            // Jiggle is triggered via the ExerciseRow - no direct access here.
-            // The play action is blocked; invalid exercises are visually indicated in the rows.
-            return
-        }
-        onPlayTapped(exercises)
     }
 
     private func addExercise() {
-        let order = (exercises.last?.order ?? 0) + 1.0
+        let order = (plan.exercises.last?.order ?? 0) + 1.0
         let exercise = Exercise(plan: plan, order: order)
         modelContext.insert(exercise)
         focusedExerciseId = exercise.id
     }
 
     private func duplicateExercise(_ source: Exercise) {
-        let sortedExercises = exercises  // already sorted by @Query
+        let sortedExercises = plan.exercises  // already sorted by @Query
         guard let idx = sortedExercises.firstIndex(where: { $0.id == source.id }) else { return }
         let next = idx + 1 < sortedExercises.count ? sortedExercises[idx + 1] : nil
         let newOrder: Double
@@ -107,7 +66,7 @@ struct ExerciseListView: View {
             if gap < 1e-10 {
                 renumberExercises(sortedExercises)
                 // After renumber, recalculate based on updated values
-                let updated = exercises
+                let updated = plan.exercises
                 if let s = updated.first(where: { $0.id == source.id }),
                    let n = updated.first(where: { $0.id == next.id }) {
                     newOrder = (s.order + n.order) / 2
@@ -133,7 +92,7 @@ struct ExerciseListView: View {
     }
 
     private func moveExercises(from source: IndexSet, to destination: Int) {
-        var sortedExercises = exercises
+        var sortedExercises = plan.exercises
         sortedExercises.move(fromOffsets: source, toOffset: destination)
         for (i, exercise) in sortedExercises.enumerated() {
             exercise.order = Double(i + 1)
@@ -142,7 +101,7 @@ struct ExerciseListView: View {
 
     private func deleteExercises(at offsets: IndexSet) {
         for idx in offsets {
-            modelContext.delete(exercises[idx])
+            modelContext.delete(plan.exercises[idx])
         }
     }
 
@@ -161,43 +120,55 @@ struct PlanningView: View {
     @Query private var plans: [Plan]
     @State private var showDeleteConfirmation = false
 
+    private var hasInvalidExercises: Bool {
+        plan.exercises.contains { !$0.isValid }
+    }
+
     var body: some View {
         NavigationStack {
-            ExerciseListView(plan: plan, onPlayTapped: { _ in
-                mode = .exercise
-            })
-            .navigationTitle("")
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    TextField("Plan Name", text: Bindable(plan).name)
-                        .font(.headline)
-                        .multilineTextAlignment(.center)
-                }
-                ToolbarItem(placement: .topBarLeading) {
-                    PlanMenuButton(
-                        selectedPlanId: selectedPlanId,
-                        onSelectPlan: { plan in
-                            selectedPlanId = plan.id
-                        },
-                        onCreateNewPlan: createNewPlan,
-                        onDeletePlan: {
-                            if plan.exercises.isEmpty {
-                                deletePlan()
-                            } else {
-                                showDeleteConfirmation = true
-                            }
+            ExerciseListView(plan: plan)
+                .navigationTitle("")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            mode = .exercise
+                        } label: {
+                            Image(systemName: hasInvalidExercises ? "play.slash.fill" : "play.fill")
                         }
-                    )
+                        .tint(hasInvalidExercises ? .red : .green)
+                        .disabled(hasInvalidExercises)
+                    }
+                    ToolbarItem(placement: .principal) {
+                        TextField("Plan Name", text: Bindable(plan).name)
+                            .font(.headline)
+                            .multilineTextAlignment(.center)
+                    }
+                    ToolbarItem(placement: .topBarLeading) {
+                        PlanMenuButton(
+                            selectedPlanId: selectedPlanId,
+                            currentPlanName: plan.name,
+                            onSelectPlan: { plan in
+                                selectedPlanId = plan.id
+                            },
+                            onCreateNewPlan: createNewPlan,
+                            onDeletePlan: {
+                                if plan.exercises.isEmpty {
+                                    deletePlan()
+                                } else {
+                                    showDeleteConfirmation = true
+                                }
+                            }
+                        )
+                    }
                 }
-            }
-            .alert("Delete \"\(plan.name)\"?", isPresented: $showDeleteConfirmation) {
-                Button("Delete Plan", role: .destructive) {
-                    deletePlan()
+                .alert("Delete \"\(plan.name)\"?", isPresented: $showDeleteConfirmation) {
+                    Button("Delete Plan", role: .destructive) {
+                        deletePlan()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("This will permanently delete all exercises in this plan.")
                 }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will permanently delete all exercises in this plan.")
-            }
         }
     }
 

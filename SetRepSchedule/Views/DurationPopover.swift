@@ -19,6 +19,7 @@ struct DurationPopover: View {
                 }
                 .pickerStyle(.wheel)
                 .frame(width: 80)
+                .onChange(of: minutes) { _, _ in commit() }
 
                 Text(":")
                     .font(.title2)
@@ -31,8 +32,9 @@ struct DurationPopover: View {
                 }
                 .pickerStyle(.wheel)
                 .frame(width: 80)
+                .onChange(of: seconds) { _, _ in commit() }
             }
-            Button("Clear", role: .destructive) {
+            Button("Reset", role: .destructive) {
                 exercise.durationSeconds = nil
                 isPresented = false
             }
@@ -44,12 +46,11 @@ struct DurationPopover: View {
             minutes = Int(total / 60)
             seconds = Int(total % 60)
         }
-        .onChange(of: isPresented) { _, newValue in
-            if !newValue {
-                let total = Int64(minutes * 60 + seconds)
-                exercise.durationSeconds = total == 0 ? nil : total
-            }
-        }
+    }
+
+    private func commit() {
+        let total = Int64(minutes * 60 + seconds)
+        exercise.durationSeconds = total == 0 ? nil : total
     }
 }
 

@@ -123,9 +123,8 @@ struct ExerciseView: View {
                         Button {
                             isConfirmingExit = true
                         } label: {
-                            CircularButton(systemImage: "chevron.left")
+                            Image(systemName: "chevron.left")
                         }
-                        .circularGlassButton()
                     }
                 }
             }

@@ -4,9 +4,15 @@ import SwiftData
 struct PlanMenuButton: View {
     @Query private var plans: [Plan]
     var selectedPlanId: UUID?
+    var currentPlanName: String
     var onSelectPlan: (Plan) -> Void
     var onCreateNewPlan: () -> Void
     var onDeletePlan: () -> Void
+
+    private var deleteLabelText: String {
+        let name = currentPlanName.isEmpty ? "This Plan" : currentPlanName
+        return "Delete \"\(name)\""
+    }
 
     var body: some View {
         Menu {
@@ -25,11 +31,14 @@ struct PlanMenuButton: View {
             Button(role: .destructive) {
                 onDeletePlan()
             } label: {
-                Label("Delete this Plan", systemImage: "trash")
+                Label(deleteLabelText, systemImage: "trash")
             }
         } label: {
-            CircularButton(systemImage: "list.bullet")
+            Image(systemName: "list.bullet")
+                .font(.system(size: 17, weight: .semibold))
+                .padding(8)
         }
-        .circularGlassButton()
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
     }
 }
