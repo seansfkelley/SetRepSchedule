@@ -49,7 +49,7 @@ struct ExerciseListView: View {
                             focusedExerciseId: $focusedExerciseId,
                             onDuplicate: { duplicateExercise(exercise) }
                         )
-                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets())
                     }
                     .onMove(perform: moveExercises)
                     .onDelete(perform: deleteExercises)
@@ -76,6 +76,7 @@ struct ExerciseListView: View {
                     CircularButton(systemImage: hasInvalidExercises ? "play.slash.fill" : "play.fill")
                         .tint(.green)
                 }
+                .circularGlassButton()
             }
         }
     }

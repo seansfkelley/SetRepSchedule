@@ -6,8 +6,16 @@ struct CircularButton: View {
     var body: some View {
         Image(systemName: systemImage)
             .font(.system(size: 17, weight: .semibold))
-            .frame(width: 36, height: 36)
-            .background(Circle().fill(.regularMaterial))
+            .foregroundStyle(.primary)
+            .padding(8)
+    }
+}
+
+extension View {
+    func circularGlassButton() -> some View {
+        self
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
     }
 }
 

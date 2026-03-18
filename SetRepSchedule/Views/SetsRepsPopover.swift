@@ -22,15 +22,12 @@ struct SetsRepsButton: View {
         Button {
             showPopover = true
         } label: {
-            VStack(spacing: 2) {
-                Text("\(exercise.sets) × \(exercise.reps)")
-                    .font(.subheadline.monospacedDigit())
-                Text("Sets × Reps")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
+            Text("\(exercise.sets) × \(exercise.reps)")
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.plain)
         .popover(isPresented: $showPopover) {
             SetsRepsPopover(exercise: exercise)
         }

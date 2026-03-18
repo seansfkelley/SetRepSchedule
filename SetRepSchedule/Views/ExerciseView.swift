@@ -71,6 +71,7 @@ struct ExerciseView: View {
                             onAdvance: advanceCard
                         )
                         .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
                         .offset(x: cardOffset)
                         .rotationEffect(.degrees(cardRotation))
                         .gesture(
@@ -124,6 +125,7 @@ struct ExerciseView: View {
                         } label: {
                             CircularButton(systemImage: "chevron.left")
                         }
+                        .circularGlassButton()
                     }
                 }
             }

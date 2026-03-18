@@ -30,5 +30,6 @@ struct PlanMenuButton: View {
         } label: {
             CircularButton(systemImage: "list.bullet")
         }
+        .circularGlassButton()
     }
 }
