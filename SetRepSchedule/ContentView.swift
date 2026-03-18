@@ -103,7 +103,7 @@ struct ContentView: View {
     }
 
     private func createDefaultEmptyPlan() {
-        let plan = Plan(name: "New Plan")
+        let plan = Plan(name: "Untitled Plan")
         modelContext.insert(plan)
         setSelectedPlanId(plan.id)
     }

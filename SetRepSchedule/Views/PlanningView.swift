@@ -8,12 +8,22 @@ enum AppMode {
 
 struct ExerciseListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query private var exercises: [Exercise]
     @FocusState private var focusedExerciseId: UUID?
     var plan: Plan
 
+    init(plan: Plan) {
+        self.plan = plan
+        let planId = plan.id
+        _exercises = Query(
+            filter: #Predicate<Exercise> { $0.plan?.id == planId },
+            sort: \.order
+        )
+    }
+
     var body: some View {
         ZStack {
-            if plan.exercises.isEmpty {
+            if exercises.isEmpty {
                 ContentUnavailableView {
                     Label("No Exercises", systemImage: "figure.walk")
                 } description: {
@@ -25,7 +35,7 @@ struct ExerciseListView: View {
                 }
             } else {
                 List {
-                    ForEach(plan.exercises) { exercise in
+                    ForEach(exercises) { exercise in
                         ExerciseRow(
                             exercise: exercise,
                             focusedExerciseId: $focusedExerciseId,
@@ -49,27 +59,29 @@ struct ExerciseListView: View {
             .buttonStyle(.glass)
             .buttonBorderShape(.circle)
         }
-
     }
 
     private func addExercise() {
-        let order = (plan.exercises.last?.order ?? 0) + 1.0
+        let order = (exercises.last?.order ?? 0) + 1.0
         let exercise = Exercise(plan: plan, order: order)
         modelContext.insert(exercise)
-        focusedExerciseId = exercise.id
+        let id = exercise.id
+        Task { @MainActor in
+            focusedExerciseId = id
+        }
     }
 
     private func moveExercises(from source: IndexSet, to destination: Int) {
-        var sortedExercises = plan.exercises
-        sortedExercises.move(fromOffsets: source, toOffset: destination)
-        for (i, exercise) in sortedExercises.enumerated() {
+        var sorted = exercises
+        sorted.move(fromOffsets: source, toOffset: destination)
+        for (i, exercise) in sorted.enumerated() {
             exercise.order = Double(i + 1)
         }
     }
 
     private func deleteExercises(at offsets: IndexSet) {
         for idx in offsets {
-            modelContext.delete(plan.exercises[idx])
+            modelContext.delete(exercises[idx])
         }
     }
 
@@ -81,7 +93,7 @@ struct ExerciseListView: View {
 }
 
 struct PlanningView: View {
-    var plan: Plan
+    @Bindable var plan: Plan
     @Binding var mode: AppMode
     @Binding var selectedPlanId: UUID?
     @Environment(\.modelContext) private var modelContext
@@ -95,6 +107,7 @@ struct PlanningView: View {
     var body: some View {
         NavigationStack {
             ExerciseListView(plan: plan)
+
                 .navigationTitle("")
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -107,7 +120,7 @@ struct PlanningView: View {
                         .disabled(hasInvalidExercises)
                     }
                     ToolbarItem(placement: .principal) {
-                        TextField("Plan Name", text: Bindable(plan).name)
+                        TextField("Plan Name", text: $plan.name)
                             .font(.headline)
                             .multilineTextAlignment(.center)
                     }
@@ -141,7 +154,7 @@ struct PlanningView: View {
     }
 
     private func createNewPlan() {
-        let newPlan = Plan(name: "New Plan")
+        let newPlan = Plan(name: "Untitled Plan")
         modelContext.insert(newPlan)
         selectedPlanId = newPlan.id
     }
