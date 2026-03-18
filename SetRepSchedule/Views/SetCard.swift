@@ -12,22 +12,27 @@ struct SetCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 4) {
-                Text(exerciseName.isEmpty ? "Exercise" : exerciseName)
-                    .font(.title)
-                    .bold()
-                    .multilineTextAlignment(.center)
+            VStack(spacing: 6) {
+                if !exerciseName.isEmpty {
+                    Text(exerciseName)
+                        .font(.title)
+                        .bold()
+                        .multilineTextAlignment(.center)
+                }
                 Text("Set \(setIndex + 1) of \(totalSets)")
                     .foregroundStyle(.secondary)
             }
-            .padding()
+            .padding(.horizontal)
+            .padding(.top)
+
+            Spacer()
 
             if let data = imageData, let uiImage = UIImage(data: data) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFit()
-                    .frame(maxHeight: 300)
-                    .padding(.horizontal)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .padding(.horizontal, 32)
             }
 
             Spacer()

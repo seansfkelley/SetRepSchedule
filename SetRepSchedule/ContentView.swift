@@ -47,7 +47,7 @@ struct ContentView: View {
                     )
                 case .exercise:
                     let exercises = plan.exercises.sorted { $0.order < $1.order }
-                    ExerciseView(exercises: exercises, mode: $mode)
+                    ExerciseView(exercises: exercises, planName: plan.name, mode: $mode)
                 }
             } else {
                 // selectedPlanId is set but points to a deleted plan — pick the first available

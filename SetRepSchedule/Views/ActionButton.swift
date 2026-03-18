@@ -69,7 +69,7 @@ struct ActionButton: View {
                             .opacity(0.8)
                     case .counting:
                         HStack(spacing: 6) {
-                            Image(systemName: "clock.fill")
+                            Image(systemName: "clock")
                             Text(String(format: "%d:%02d", Int(remainingSeconds / 60), Int(remainingSeconds % 60)))
                                 .font(.title3.bold().monospacedDigit())
                         }

@@ -3,6 +3,7 @@ import SwiftData
 
 struct ExerciseView: View {
     var exercises: [Exercise]
+    var planName: String
     @Binding var mode: AppMode
 
     @State private var exerciseIndex: Int = 0
@@ -56,6 +57,15 @@ struct ExerciseView: View {
                 self.completedReps[id] = counts
             }
         )
+    }
+
+    private var totalSets: Int {
+        exercises.reduce(0) { $0 + $1.sets }
+    }
+
+    private var completedSets: Int {
+        let setsInPriorExercises = exercises.prefix(exerciseIndex).reduce(0) { $0 + $1.sets }
+        return setsInPriorExercises + setIndex
     }
 
     private var nextPosition: (exerciseIndex: Int, setIndex: Int)? {
@@ -165,6 +175,17 @@ struct ExerciseView: View {
                     }
                 }
             }
+            .safeAreaInset(edge: .top) {
+                if !showCompletion {
+                    ProgressView(value: Double(completedSets), total: Double(max(1, totalSets)))
+                        .progressViewStyle(.linear)
+                        .animation(.easeInOut(duration: 0.2), value: completedSets)
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                }
+            }
+            .navigationTitle(planName)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if isCompleted {
@@ -256,7 +277,7 @@ struct ExerciseView: View {
     let container = previewContainer()
     let plan = previewFullPlan(in: container)
     let exercises = plan.exercises.filter { $0.isValid }.sorted { $0.order < $1.order }
-    return ExerciseView(exercises: exercises, mode: $mode)
+    return ExerciseView(exercises: exercises, planName: plan.name, mode: $mode)
         .modelContainer(container)
 }
 
@@ -265,7 +286,7 @@ struct ExerciseView: View {
     let container = previewContainer()
     let plan = previewShortPlan(in: container)
     let exercises = plan.exercises.filter { $0.isValid }.sorted { $0.order < $1.order }
-    return ExerciseView(exercises: exercises, mode: $mode)
+    return ExerciseView(exercises: exercises, planName: plan.name, mode: $mode)
         .modelContainer(container)
 }
 
@@ -274,6 +295,6 @@ struct ExerciseView: View {
     let container = previewContainer()
     let e1 = previewExercise(in: container, order: 1, name: "Plank Hold", sets: 3, reps: 1, durationSeconds: 60)
     let e2 = previewExercise(in: container, order: 2, name: "Wall Sit", sets: 3, reps: 1, durationSeconds: 45)
-    return ExerciseView(exercises: [e1, e2], mode: $mode)
+    return ExerciseView(exercises: [e1, e2], planName: "Timed Plan", mode: $mode)
         .modelContainer(container)
 }
