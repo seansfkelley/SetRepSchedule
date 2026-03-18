@@ -46,6 +46,20 @@ struct ExerciseView: View {
         )
     }
 
+    private var nextPosition: (exerciseIndex: Int, setIndex: Int)? {
+        guard let exercise = currentExercise else { return nil }
+        let nextSet = setIndex + 1
+        if nextSet < exercise.sets {
+            return (exerciseIndex, nextSet)
+        } else {
+            let nextExercise = exerciseIndex + 1
+            if nextExercise < exercises.count {
+                return (nextExercise, 0)
+            }
+        }
+        return nil
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -60,6 +74,26 @@ struct ExerciseView: View {
                     )
                 } else if let exercise = currentExercise {
                     GeometryReader { geo in
+                        // Next card: slides in from the right proportionally to the swipe
+                        if cardOffset < 0, let next = nextPosition {
+                            let nextExercise = exercises[next.exerciseIndex]
+                            SetCard(
+                                exerciseName: nextExercise.name,
+                                setIndex: next.setIndex,
+                                totalSets: nextExercise.sets,
+                                reps: nextExercise.reps,
+                                durationSeconds: nextExercise.durationSeconds,
+                                imageData: nextExercise.imageData,
+                                completedReps: .constant(0),
+                                onAdvance: {}
+                            )
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .offset(x: geo.size.width + cardOffset)
+                            .allowsHitTesting(false)
+                        }
+
+                        // Current card
                         SetCard(
                             exerciseName: exercise.name,
                             setIndex: setIndex,
@@ -79,13 +113,13 @@ struct ExerciseView: View {
                                 .onChanged { value in
                                     let translation = value.translation.width
                                     if translation < 0 {
-                                        // Leftward drag: follows directly
+                                        // Leftward drag: follows directly, gentle rotation
                                         cardOffset = translation
-                                        cardRotation = translation / 20.0
+                                        cardRotation = translation / 35.0
                                     } else {
-                                        // Rightward drag: resist
+                                        // Rightward drag: resist with no rotation
                                         cardOffset = translation * 0.1
-                                        cardRotation = (translation * 0.1) / 20.0
+                                        cardRotation = 0
                                     }
                                 }
                                 .onEnded { value in

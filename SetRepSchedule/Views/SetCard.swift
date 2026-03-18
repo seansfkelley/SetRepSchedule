@@ -33,8 +33,11 @@ struct SetCard: View {
             Spacer()
 
             VStack(spacing: 0) {
-                ProgressBar(value: Double(completedReps) / Double(max(1, reps)))
+                ProgressView(value: Double(completedReps), total: Double(max(1, reps)))
+                    .progressViewStyle(.linear)
+                    .animation(.easeInOut(duration: 0.2), value: completedReps)
                     .frame(height: 4)
+                    .padding(.horizontal, -16)
 
                 ActionButton(
                     exerciseName: exerciseName,

@@ -34,8 +34,12 @@ struct ActionButton: View {
                 return "Complete Set \(setIndex + 1) of \(totalSets)"
             }
         } else {
-            return "Complete Rep \(completedReps + 1) of \(reps)"
+            return "Complete Rep"
         }
+    }
+
+    private var repSubtitle: String {
+        "Rep \(completedReps + 1) of \(reps)"
     }
 
     private var buttonColor: Color {
@@ -52,30 +56,44 @@ struct ActionButton: View {
         Button {
             handleTap()
         } label: {
-            HStack {
+            VStack(spacing: 4) {
                 if durationSeconds != nil {
                     switch timerState {
                     case .idle:
                         let m = Int((durationSeconds ?? 0) / 60)
                         let s = Int((durationSeconds ?? 0) % 60)
-                        Text("Start Timer (\(m):\(String(format: "%02d", s)))")
-                            .font(.headline)
+                        Text("Start (\(m):\(String(format: "%02d", s)))")
+                            .font(.title3.bold())
+                        Text(repSubtitle)
+                            .font(.subheadline)
+                            .opacity(0.8)
                     case .counting:
-                        Image(systemName: "clock.fill")
-                        Text(String(format: "%d:%02d", Int(remainingSeconds / 60), Int(remainingSeconds % 60)))
-                            .font(.headline.monospacedDigit())
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock.fill")
+                            Text(String(format: "%d:%02d", Int(remainingSeconds / 60), Int(remainingSeconds % 60)))
+                                .font(.title3.bold().monospacedDigit())
+                        }
+                        Text(repSubtitle)
+                            .font(.subheadline)
+                            .opacity(0.8)
                     case .expired:
                         Text(actionLabel)
-                            .font(.headline)
+                            .font(.title3.bold())
+                        Text(repSubtitle)
+                            .font(.subheadline)
+                            .opacity(0.8)
                     }
                 } else {
                     Text(actionLabel)
-                        .font(.headline)
+                        .font(.title3.bold())
+                    Text(repSubtitle)
+                        .font(.subheadline)
+                        .opacity(0.8)
                 }
             }
             .foregroundStyle(durationSeconds != nil && timerState != .expired ? AnyShapeStyle(.primary) : AnyShapeStyle(Color.white))
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, 36)
             .background(buttonColor)
             .animation(.easeInOut(duration: 0.15), value: flashRed)
             .animation(.easeInOut(duration: 0.2), value: timerState)
