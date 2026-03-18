@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		21F440332F6B099700065B35 /* DESIGN.md in Resources */ = {isa = PBXBuildFile; fileRef = 21F440322F6B099500065B35 /* DESIGN.md */; };
+		21F440352F6B2AC000065B35 /* PASS1.md in Resources */ = {isa = PBXBuildFile; fileRef = 21F440342F6B2AC000065B35 /* PASS1.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,6 +33,7 @@
 		21F440152F6B05DB00065B35 /* SetRepScheduleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SetRepScheduleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		21F4401F2F6B05DB00065B35 /* SetRepScheduleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SetRepScheduleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		21F440322F6B099500065B35 /* DESIGN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DESIGN.md; sourceTree = "<group>"; };
+		21F440342F6B2AC000065B35 /* PASS1.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PASS1.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -85,6 +87,7 @@
 				21F440182F6B05DB00065B35 /* SetRepScheduleTests */,
 				21F440222F6B05DB00065B35 /* SetRepScheduleUITests */,
 				21F440092F6B05DB00065B35 /* Products */,
+				21F440342F6B2AC000065B35 /* PASS1.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -219,6 +222,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				21F440332F6B099700065B35 /* DESIGN.md in Resources */,
+				21F440352F6B2AC000065B35 /* PASS1.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

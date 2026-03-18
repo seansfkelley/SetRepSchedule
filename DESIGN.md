@@ -26,7 +26,7 @@ Each exercise has, in left-to-right order:
 - A button showing sets and reps.
   - Sets and reps must both be strictly positive integers.
   - The button displays in the format "A x B", where A is sets and B is reps, and has the subtitle "Sets x Reps".
-  - When tapped, bring up a popover attached to the button with a pair of +/- numerical selectors that are subtitled "sets" and "reps" and allow tapping the buttons to adjust the count within the allowable range. 
+  - When tapped, bring up a popover attached to the button with two labeled `Stepper` rows, one for sets and one for reps, allowing adjustment within the allowable range.
     - The button preview updates in real time.
     - Tap outside the popover dismiss and commit.
 - A button with a clock icon.
@@ -35,13 +35,12 @@ Each exercise has, in left-to-right order:
   - Tap outside to dismiss and commit.
   - If a duration is set, the list item button shows it. If it's unset, it shows the clock icon.
 - A button with a camera icon.
-  - When tapped, brings up the camera to take or select a picture for this item. This uses the standard iOS picture/camera selector feature. This isn't Instagram.
+  - When tapped and no image is set, presents a dialog offering "Take Photo" or "Choose from Library".
   - If there is a picture associated with this item, a tiny preview is shown instead of the camera icon.
-    - Tapping it brings it up in a sheet to view larger, and allows removing it from the list item. This reverts the button to the camera icon. 
-- A button with a duplication item. 
+    - Tapping it brings it up in a sheet to view larger, and allows removing it from the list item. This reverts the button to the camera icon.
+- A button with a duplication item.
   - Tapping this duplicates the exercise into a new adjacent item, exactly as it currently is.
   - If this exercise is in a cycle, it duplicates it into the cycle rather than outside.
-- A grab handle for dragging the list item. 
 
 An exercise must have a picture and/or a name. If it has neither, it is considered invalid:
 
@@ -96,9 +95,9 @@ Cycles can be edited after creation:
 
 At the top right is a circular green "play" button. This transitions into exercise mode with the current plan.
 
-If there are any invalid exercises in the schedule, this button is disabled and shows a play icon with a slash through it. Tapping the button jiggles all the currently-invalid list items, scrolling them into view if necessary.
+If there are any invalid exercises in the schedule, the button shows a play icon with a slash through it. Tapping it jiggles all the currently-invalid list items, scrolling them into view if necessary, but does not enter exercise mode.
 
-If there are no exercises in the plan, the button is disabled.
+If there are no exercises in the plan, tapping the button does nothing.
 
 ## Exercise Mode
 
@@ -191,13 +190,9 @@ The right approach is not yet decided and will be evaluated during Pass 2.
 
 ## Libraries and Frameworks
 
-SwiftUI, Swift Testing and Swift Data.
+SwiftUI, Swift Testing and SwiftData.
 
-Each Plan is a SwiftData `@Model` object. Cycles and Exercises are plain Swift structs conforming to `Codable`, serialized as JSON and stored as a `Data` attribute on `Plan`. This keeps the data model simple — ownership is synonymous with containment, there is no cross-talk, and all deletes are cascades.
-
-UI components deep in the tree (e.g. a button editing an Exercise) receive a `Binding<Exercise>` and can mutate fields directly without any awareness of the containing Plan. SwiftUI propagates the change up through the binding chain automatically.
-
-Images are stored on disk using `@Attribute(.externalStorage)`.
+The data model should be as simple as feasible. This is a small dataset with no performance requirements and no need for extensibility beyond what the design calls for. Choose the modeling approach that minimizes incidental complexity and prioritizes simplicity of implementation without hideously degenerate access patterns.
 
 ## Future Work
 
