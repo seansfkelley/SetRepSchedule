@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct SetRepScheduleApp: App {
@@ -6,5 +7,6 @@ struct SetRepScheduleApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: [Plan.self, Exercise.self])
     }
 }
