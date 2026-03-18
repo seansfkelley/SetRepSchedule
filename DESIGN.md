@@ -162,6 +162,33 @@ The statistics show a compact version of the schedule.
   
 The top-left chevron transforms to a "Done" button and no longer requires confirmation to leave. There is an additional, redundant, "Return to Planning" button after the statistics table which does the same thing.
 
+## Implementation Plan
+
+The app will be built in two passes.
+
+Pass 1: Exercises only:
+ 
+  - Implement everything described in this document except cycles.
+  - The planning list contains only top-level exercises. 
+  - Drag-and-drop reordering is implemented using SwiftUI's standard `onMove`.
+  - The plus button adds exercises only and without a menu. 
+  - Exercise mode works with flat schedules. 
+  - The default plan has several exercises but no cycle.
+
+Pass 2: Cycles: Add cycle support to the data model, planning UI, and exercise mode. This includes the plus button menu, cycle-level set/rep configuration, per-rep and per-set modes, the cycle card type, and the cross-level drag interactions described in the open questions below.
+
+## Open Questions
+
+### Cross-level drag interactions
+
+The design calls for dragging exercises into and out of cycles freely. This is the most technically uncertain part of the app. SwiftUI's built-in `onMove` modifier seems to be scoped to a single `ForEach` and has no mechanism for moves that cross into a different `ForEach`'s data. Assuming it does not work, here are some alternative approaches:
+
+  - Drop zones that appear during drag. When a drag begins, each cycle grows a visible drop target (e.g. "Add to cycle"). Uses `draggable()` and `dropDestination()`. Avoids gesture conflicts with `onMove`, but is visually busy and is still not true cross-level drag.
+  - UITableView via UIViewRepresentable. `UITableViewDragDelegate` and `UITableViewDropDelegate` operate at the `IndexPath` level across the entire table, including across sections. This supports the full fluid drag interaction with animated insertion indicators. The cost is that the planning list becomes a UIKit view bridged into SwiftUI, creating a seam in the codebase.
+  - Flat heterogeneous list. Rather than a nested data structure, the list is modeled as a flat array of items where each item is either a standalone exercise or a cycle-member exercise tagged with its cycle ID. Cycles are rendered visually (e.g. with indentation or a background) but the underlying list is flat and `onMove` works across the whole thing. The cycle grouping is derived from the tags rather than from nesting. This avoids the cross-`ForEach` problem entirely but requires more logic to maintain cycle invariants (e.g. ensuring members stay contiguous) during and after a move.
+
+The right approach is not yet decided and will be evaluated during Pass 2.
+
 ## Libraries and Frameworks
 
 SwiftUI, Swift Testing and Swift Data.
