@@ -5,6 +5,7 @@ struct DeckView: View {
     var exercise: Exercise
     var setIndex: Int
     var progressViewTarget: CGRect
+    var onSetWillComplete: () -> Void = {}
     var onSetComplete: (_ completedReps: Int) -> Void
 
     @State private var completedReps: Int = 0
@@ -23,10 +24,11 @@ struct DeckView: View {
                             isTop: isTop,
                             progressViewTarget: progressViewTarget,
                             completedReps: isTop ? $completedReps : .constant(0),
+                            onSetWillComplete: onSetWillComplete,
                             onSetComplete: {
                                 onSetComplete(completedReps)
                                 completedReps = 0
-                            },
+                            }
                         )
                         .opacity(isDealt ? 1 : 0)
                         .offset(y: isDealt ? 0 : -60)
@@ -56,6 +58,7 @@ private struct DeckCard: View {
     var isTop: Bool
     var progressViewTarget: CGRect
     @Binding var completedReps: Int
+    var onSetWillComplete: () -> Void
     var onSetComplete: () -> Void
 
     @State private var state = FlyingCardState()
@@ -67,7 +70,7 @@ private struct DeckCard: View {
             isActive: isTop,
             completedReps: $completedReps,
             onAdvance: {
-                state.fly { onSetComplete() }
+                state.fly(onWillComplete: onSetWillComplete) { onSetComplete() }
             }
         )
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
@@ -86,7 +89,7 @@ private struct DeckCard: View {
                 }
                 .onEnded {
                     if isTop && !state.isFlying {
-                        state.onDragEnded($0) { onSetComplete() }
+                        state.onDragEnded($0, onWillComplete: onSetWillComplete) { onSetComplete() }
                     }
                 },
             isEnabled: isTop && !state.isFlying
@@ -113,11 +116,11 @@ private class FlyingCardState {
         offset = translation
     }
 
-    func onDragEnded(_ value: DragGesture.Value, onComplete: @escaping () -> Void) {
+    func onDragEnded(_ value: DragGesture.Value, onWillComplete: @escaping () -> Void, onComplete: @escaping () -> Void) {
         let predicted = value.predictedEndTranslation
         let dist = hypot(predicted.width, predicted.height)
         if dist > commitThreshold {
-            fly(velocity: value.velocity, onComplete: onComplete)
+            fly(velocity: value.velocity, onWillComplete: onWillComplete, onComplete: onComplete)
         } else {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                 offset = .zero
@@ -125,11 +128,11 @@ private class FlyingCardState {
         }
     }
 
-    func fly(onComplete: @escaping () -> Void) {
-        fly(velocity: .zero, onComplete: onComplete)
+    func fly(onWillComplete: @escaping () -> Void = {}, onComplete: @escaping () -> Void) {
+        fly(velocity: .zero, onWillComplete: onWillComplete, onComplete: onComplete)
     }
 
-    private func fly(velocity: CGSize = .zero, onComplete: @escaping () -> Void) {
+    private func fly(velocity: CGSize = .zero, onWillComplete: @escaping () -> Void, onComplete: @escaping () -> Void) {
         guard !isFlying else { return }
 
         let dest = CGSize(
@@ -144,14 +147,19 @@ private class FlyingCardState {
             // complete nonsense even on a real device. There will be very high-magnitude velocities
             // even if you hold your finger (or the mouse, in the simulator) still for a full second
             // before releasing it.
-            .interpolatingSpring(mass: 1.0, stiffness: 300, damping: 35),
-            completionCriteria: .logicallyComplete
+            .interpolatingSpring(duration: 0.3)
         ) {
             offset = dest
             scale = 0.1
             opacity = 0
         } completion: { @MainActor in
             onComplete()
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(0.2))
+            guard !Task.isCancelled else { return }
+            onWillComplete()
         }
     }
 }

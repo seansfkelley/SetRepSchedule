@@ -61,6 +61,9 @@ struct ExerciseView: View {
                         exercise: exercise,
                         setIndex: completedSetsInCurrentExercise,
                         progressViewTarget: progressBarFrame,
+                        onSetWillComplete: {
+                            setCompletionTrigger += 1
+                        },
                         onSetComplete: { reps in
                             appendReps(reps, for: exercise)
                             handleSetComplete()
@@ -131,7 +134,6 @@ struct ExerciseView: View {
 
     private func handleSetComplete() {
         guard let exercise = currentExercise else { return }
-        setCompletionTrigger += 1
         completedSetsInCurrentExercise += 1
         if completedSetsInCurrentExercise >= exercise.sets {
             let nextIdx = exerciseIndex + 1
