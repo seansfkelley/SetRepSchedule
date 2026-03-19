@@ -17,10 +17,11 @@ struct ExerciseView: View {
 
     @State private var completedReps: [UUID: [Int]] = [:]
     @State private var isConfirmingExit: Bool = false
-    @State private var showCompletion = false
 
     @State private var scrollPosition: ScrollPosition = ScrollPosition()
     @State private var scrollFraction: CGFloat = 0
+
+    private static let completionId = "completion"
 
     // Flat list of all cards in order.
     private var cards: [CardPosition] {
@@ -33,15 +34,19 @@ struct ExerciseView: View {
         return result
     }
 
+    private var isCompleted: Bool {
+        scrollPosition.viewID(type: String.self) == Self.completionId
+    }
+
     private var currentCard: CardPosition? {
-        guard let id = scrollPosition.viewID(type: String.self) else {
+        guard let id = scrollPosition.viewID(type: String.self), id != Self.completionId else {
             return cards.first
         }
         return cards.first(where: { $0.id == id }) ?? cards.first
     }
 
-    private var isCompleted: Bool {
-        showCompletion
+    private var completionProgress: CGFloat {
+        max(0, min(1, scrollFraction - CGFloat(cards.count - 1)))
     }
 
     private var totalSets: Int {
@@ -81,7 +86,6 @@ struct ExerciseView: View {
                 Color(.systemGroupedBackground)
                     .ignoresSafeArea()
 
-                let completionProgress = max(0, min(1, scrollFraction - CGFloat(cards.count - 1)))
                 CompletionView(
                     exercises: exercises,
                     completedReps: completedReps,
@@ -116,6 +120,7 @@ struct ExerciseView: View {
 
                         Spacer()
                             .containerRelativeFrame([.horizontal])
+                            .id(Self.completionId)
                     }
                 }
                 .scrollTargetBehavior(.paging)
@@ -128,13 +133,12 @@ struct ExerciseView: View {
                 }
             }
             .safeAreaInset(edge: .top) {
-                if !showCompletion {
-                    ProgressView(value: Double(completedSets), total: Double(max(1, totalSets)))
-                        .progressViewStyle(.linear)
-                        .animation(.easeInOut(duration: 0.2), value: completedSets)
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
-                }
+                ProgressView(value: Double(completedSets), total: Double(max(1, totalSets)))
+                    .progressViewStyle(.linear)
+                    .animation(.easeInOut(duration: 0.2), value: completedSets)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .opacity(1 - completionProgress)
             }
             .navigationTitle(planName)
             .navigationBarTitleDisplayMode(.inline)
@@ -190,9 +194,8 @@ struct ExerciseView: View {
                 scrollPosition = ScrollPosition(id: cards[nextIdx].id)
             }
         } else {
-            // Past the last card — show completion
-            withAnimation(.easeInOut(duration: 0.3)) {
-                showCompletion = true
+            withAnimation(.easeInOut(duration: 0.4)) {
+                scrollPosition = ScrollPosition(id: Self.completionId)
             }
         }
     }
