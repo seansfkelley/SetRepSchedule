@@ -80,10 +80,14 @@ private struct DeckCard: View {
         .highPriorityGesture(
             DragGesture()
                 .onChanged {
-                    if isTop && !state.isFlying { state.onDragChanged($0.translation) }
+                    if isTop && !state.isFlying {
+                        state.onDragChanged($0.translation)
+                    }
                 }
                 .onEnded {
-                    if isTop && !state.isFlying { state.onDragEnded($0, onComplete: onSetComplete) }
+                    if isTop && !state.isFlying {
+                        state.onDragEnded($0, onComplete: onSetComplete)
+                    }
                 },
             isEnabled: isTop && !state.isFlying
         )
@@ -145,7 +149,10 @@ private class FlyingCardState {
 
         isFlying = true
 
-        withAnimation(.interpolatingSpring(duration: 0.3, bounce: 0.2, initialVelocity: initialVelocity)) {
+        withAnimation(
+            .interpolatingSpring(duration: 0.3, bounce: 0, initialVelocity: initialVelocity),
+            completionCriteria: .logicallyComplete
+        ) {
             offset = dest
             scale = 0.1
             opacity = 0

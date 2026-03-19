@@ -19,6 +19,7 @@ struct ExerciseView: View {
     @State private var isCompleted: Bool = false
 
     @State private var progressBarFrame: CGRect = .zero
+    @State private var setCompletionTrigger: Int = 0
 
     private var currentExercise: Exercise? {
         guard exerciseIndex < exercises.count else { return nil }
@@ -73,9 +74,28 @@ struct ExerciseView: View {
                 GeometryReader { geo in
                     ProgressView(value: Double(completedSetsCount), total: Double(max(1, totalSets)))
                         .progressViewStyle(.linear)
+                        .animation(.linear(duration: 0.4), value: completedSetsCount)
                         .padding(.horizontal)
                         .padding(.vertical, 8)
                         .opacity(isCompleted ? 0 : 1)
+                        .keyframeAnimator(
+                            initialValue: ProgressSquishValues(),
+                            trigger: setCompletionTrigger
+                        ) { content, value in
+                            content
+                                .scaleEffect(x: value.scaleX, y: value.scaleY)
+                        } keyframes: { _ in
+                            KeyframeTrack(\.scaleX) {
+                                CubicKeyframe(0.9, duration: 0.15)
+                                CubicKeyframe(1.1, duration: 0.15)
+                                CubicKeyframe(1.0, duration: 0.10)
+                            }
+                            KeyframeTrack(\.scaleY) {
+                                CubicKeyframe(1.2, duration: 0.15)
+                                CubicKeyframe(0.7, duration: 0.15)
+                                CubicKeyframe(1.0, duration: 0.10)
+                            }
+                        }
                         .preference(key: ProgressBarFrameKey.self, value: geo.frame(in: .global))
                 }
                 .frame(height: 36)
@@ -111,6 +131,7 @@ struct ExerciseView: View {
 
     private func handleSetComplete() {
         guard let exercise = currentExercise else { return }
+        setCompletionTrigger += 1
         completedSetsInCurrentExercise += 1
         if completedSetsInCurrentExercise >= exercise.sets {
             let nextIdx = exerciseIndex + 1
@@ -122,6 +143,11 @@ struct ExerciseView: View {
             }
         }
     }
+}
+
+private struct ProgressSquishValues {
+    var scaleX: Double = 1.0
+    var scaleY: Double = 1.0
 }
 
 private struct ProgressBarFrameKey: PreferenceKey {
