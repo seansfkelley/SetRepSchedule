@@ -71,6 +71,7 @@ struct ExerciseListView: View {
         let order = (exercises.last?.order ?? 0) + 1.0
         let exercise = Exercise(plan: plan, order: order)
         modelContext.insert(exercise)
+        try? modelContext.save()
         focusedExerciseId = exercise.id
     }
 
@@ -80,12 +81,14 @@ struct ExerciseListView: View {
         for (i, exercise) in sorted.enumerated() {
             exercise.order = Double(i + 1)
         }
+        try? modelContext.save()
     }
 
     private func deleteExercises(at offsets: IndexSet) {
         for idx in offsets {
             modelContext.delete(exercises[idx])
         }
+        try? modelContext.save()
     }
 }
 
