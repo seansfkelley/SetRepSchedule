@@ -10,10 +10,9 @@ struct DeckView: View {
     var onFrameChange: (CGRect) -> Void
 
     @State private var dragOffset: CGSize = .zero
-    @State private var dragVelocity: CGSize = .zero
+    @State private var topCardFrame: CGRect = .zero
 
-    private let commitDistanceThreshold: CGFloat = 80
-    private let commitVelocityThreshold: CGFloat = 400
+    private let commitThreshold: CGFloat = 400
 
     private func repBinding(for setIndex: Int) -> Binding<Int> {
         Binding(
@@ -44,16 +43,30 @@ struct DeckView: View {
                             setIndex: setIndex,
                             isActive: isTop && isDealt,
                             completedReps: repBinding(for: setIndex),
-                            onAdvance: { onSetComplete(setIndex, .zero) }
+                            onAdvance: { onSetComplete(setIndex, topCardFrame) }
                         )
+                        .background(isTop ? GeometryReader { geo in
+                            Color.clear.onAppear { topCardFrame = geo.frame(in: .global) }
+                        } : nil)
                         .opacity(isDealt ? 1 : 0)
                         .offset(y: isDealt ? 0 : -60)
                         .offset(isTop ? dragOffset : .zero)
                         .highPriorityGesture(isTop ? DragGesture()
                             .onChanged { dragOffset = $0.translation }
-                            .onEnded { _ in
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                            .onEnded { value in
+                                let predicted = value.predictedEndTranslation
+                                let dist = hypot(predicted.width, predicted.height)
+                                if dist > commitThreshold {
+                                    let offsetFrame = topCardFrame.offsetBy(
+                                        dx: value.translation.width,
+                                        dy: value.translation.height
+                                    )
                                     dragOffset = .zero
+                                    onSetComplete(currentSetIndex, offsetFrame)
+                                } else {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                        dragOffset = .zero
+                                    }
                                 }
                             } : nil
                         )
