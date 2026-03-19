@@ -10,7 +10,7 @@ struct ExerciseView: View {
     @State private var isConfirmingExit: Bool = false
 
     @State private var exerciseIndex: Int = 0
-    @State private var currentSetIndex: Int = 0
+    @State private var completedSetsInCurrentExercise: Int = 0
 
     @State private var isCompleted: Bool = false
 
@@ -31,7 +31,7 @@ struct ExerciseView: View {
             if i < exerciseIndex {
                 count += ex.sets
             } else if i == exerciseIndex {
-                count += currentSetIndex
+                count += completedSetsInCurrentExercise
             }
         }
         return count
@@ -63,13 +63,11 @@ struct ExerciseView: View {
                 if let exercise = currentExercise, !isCompleted {
                     DeckView(
                         exercise: exercise,
-                        currentSetIndex: currentSetIndex,
                         completedReps: repBinding(for: exerciseIndex),
                         progressViewTarget: progressBarFrame,
-                        onSetComplete: { setIndex in
-                            handleSetComplete(setIndex: setIndex)
-                        }
+                        onSetComplete: { handleSetComplete() }
                     )
+                    .id(exerciseIndex)
                     .padding(.horizontal, 16)
                 }
             }
@@ -117,24 +115,17 @@ struct ExerciseView: View {
 
     // MARK: - Set Completion
 
-    private func handleSetComplete(setIndex: Int) {
+    private func handleSetComplete() {
         guard let exercise = currentExercise else { return }
-        let isLastSet = setIndex == exercise.sets - 1
-
-        if isLastSet {
-            advanceExercise()
-        } else {
-            currentSetIndex = setIndex + 1
-        }
-    }
-
-    private func advanceExercise() {
-        let nextIdx = exerciseIndex + 1
-        if nextIdx >= exercises.count {
-            isCompleted = true
-        } else {
-            exerciseIndex = nextIdx
-            currentSetIndex = 0
+        completedSetsInCurrentExercise += 1
+        if completedSetsInCurrentExercise >= exercise.sets {
+            let nextIdx = exerciseIndex + 1
+            if nextIdx >= exercises.count {
+                isCompleted = true
+            } else {
+                exerciseIndex = nextIdx
+                completedSetsInCurrentExercise = 0
+            }
         }
     }
 }

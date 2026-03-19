@@ -26,11 +26,11 @@ private class FlyingCardState {
         offset = translation
     }
 
-    func onDragEnded(_ value: DragGesture.Value, commitFly: @escaping () -> Void) {
+    func onDragEnded(_ value: DragGesture.Value, onComplete: @escaping () -> Void) {
         let predicted = value.predictedEndTranslation
         let dist = hypot(predicted.width, predicted.height)
         if dist > commitThreshold {
-            fly(to: targetOffset, velocity: value.velocity, onComplete: commitFly)
+            fly(to: targetOffset, velocity: value.velocity, onComplete: onComplete)
         } else {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                 offset = .zero
@@ -65,11 +65,11 @@ private class FlyingCardState {
 
 struct DeckView: View {
     var exercise: Exercise
-    var currentSetIndex: Int
     @Binding var completedReps: [Int]
     var progressViewTarget: CGRect
-    var onSetComplete: (_ setIndex: Int) -> Void
+    var onSetComplete: () -> Void
 
+    @State private var dismissedSets: Set<Int> = []
     @State private var dealtCount: Int = 0
 
     private func repBinding(for setIndex: Int) -> Binding<Int> {
@@ -83,15 +83,17 @@ struct DeckView: View {
     }
 
     var body: some View {
-        let setsRemaining = exercise.sets - currentSetIndex
+        // undismissedIndices[0] is the top card, [1] is behind it, etc.
+        let undismissedIndices = (0..<exercise.sets).filter { !dismissedSets.contains($0) }
 
-        BaseCard(exercise: exercise)
+        return BaseCard(exercise: exercise)
             .overlay(alignment: .bottom) {
                 ZStack(alignment: .bottom) {
-                    ForEach((0..<setsRemaining).reversed(), id: \.self) { stackIndex in
-                        let setIndex = currentSetIndex + stackIndex
+                    ForEach((0..<exercise.sets).reversed(), id: \.self) { setIndex in
+                        let stackIndex = undismissedIndices.firstIndex(of: setIndex) ?? -1
                         let isTop = stackIndex == 0
-                        let isDealt = stackIndex >= setsRemaining - dealtCount
+                        let isDealt = setIndex < dealtCount
+                        let isDismissed = dismissedSets.contains(setIndex)
 
                         DeckCard(
                             exercise: exercise,
@@ -100,8 +102,13 @@ struct DeckView: View {
                             isDealt: isDealt,
                             progressViewTarget: progressViewTarget,
                             completedReps: repBinding(for: setIndex),
-                            onSetComplete: { onSetComplete(setIndex) }
+                            onSetComplete: {
+                                dismissedSets.insert(setIndex)
+                                onSetComplete()
+                            }
                         )
+                        .opacity(isDismissed ? 0 : 1)
+                        .allowsHitTesting(!isDismissed)
                     }
                 }
                 .padding(BaseCard.setCardInset)
@@ -151,7 +158,7 @@ private struct DeckCard: View {
         .highPriorityGesture(
             DragGesture()
                 .onChanged { if isTop && !state.isFlying { state.onDragChanged($0.translation) } }
-                .onEnded { if isTop && !state.isFlying { state.onDragEnded($0, commitFly: onSetComplete) } },
+                .onEnded { if isTop && !state.isFlying { state.onDragEnded($0, onComplete: onSetComplete) } },
             isEnabled: isTop && !state.isFlying
         )
         .onChange(of: progressViewTarget, initial: true) {
@@ -174,10 +181,9 @@ private struct DealAnimationPreview: View {
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { progressViewTarget = $0 }
             DeckView(
                 exercise: exercise,
-                currentSetIndex: 0,
                 completedReps: $completedReps,
                 progressViewTarget: progressViewTarget,
-                onSetComplete: { _ in }
+                onSetComplete: {}
             )
             .id(replayToken)
             Button("Replay") {
@@ -192,32 +198,26 @@ private struct DealAnimationPreview: View {
 
 private struct StaticDeckPreview: View {
     let exercise: Exercise
-    let initialSetIndex: Int
-    let initialCompletedReps: [Int]
-    @State private var currentSetIndex: Int
+    @State private var completedSets: Int = 0
     @State private var completedReps: [Int]
     @State private var progressViewTarget: CGRect = .zero
 
-    init(exercise: Exercise, currentSetIndex: Int, completedReps: [Int]) {
+    init(exercise: Exercise, completedReps: [Int]) {
         self.exercise = exercise
-        self.initialSetIndex = currentSetIndex
-        self.initialCompletedReps = completedReps
-        _currentSetIndex = State(initialValue: currentSetIndex)
         _completedReps = State(initialValue: completedReps)
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            ProgressView(value: Double(currentSetIndex), total: Double(max(1, exercise.sets)))
+            ProgressView(value: Double(completedSets), total: Double(max(1, exercise.sets)))
                 .progressViewStyle(.linear)
                 .padding()
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { progressViewTarget = $0 }
             DeckView(
                 exercise: exercise,
-                currentSetIndex: currentSetIndex,
                 completedReps: $completedReps,
                 progressViewTarget: progressViewTarget,
-                onSetComplete: { setIndex in currentSetIndex = setIndex + 1 }
+                onSetComplete: { completedSets += 1 }
             )
             .padding()
         }
@@ -235,14 +235,14 @@ private struct StaticDeckPreview: View {
 #Preview("Mid-deck (set 2 of 3 on top)") {
     let container = previewContainer()
     let exercise = previewExercise(in: container, name: "Push-ups", sets: 3, reps: 5)
-    StaticDeckPreview(exercise: exercise, currentSetIndex: 1, completedReps: [5, 2, 0])
+    StaticDeckPreview(exercise: exercise, completedReps: [5, 2, 0])
         .modelContainer(container)
 }
 
 #Preview("Last set") {
     let container = previewContainer()
     let exercise = previewExercise(in: container, name: "Lunges", sets: 3, reps: 10)
-    StaticDeckPreview(exercise: exercise, currentSetIndex: 2, completedReps: [10, 10, 0])
+    StaticDeckPreview(exercise: exercise, completedReps: [10, 10, 0])
         .modelContainer(container)
 }
 
@@ -250,6 +250,6 @@ private struct StaticDeckPreview: View {
     let container = previewContainer()
     let exercise = previewExercise(in: container, name: "Squats", sets: 3, reps: 12,
                                    imageData: previewImageData(color: .systemBlue))
-    StaticDeckPreview(exercise: exercise, currentSetIndex: 0, completedReps: [0, 0, 0])
+    StaticDeckPreview(exercise: exercise, completedReps: [0, 0, 0])
         .modelContainer(container)
 }
