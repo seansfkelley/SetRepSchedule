@@ -6,6 +6,10 @@ enum TimerState {
 }
 
 struct ActionButton: View {
+    private static let repHaptic: SensoryFeedback = .impact
+    private static let abortHaptic: SensoryFeedback = .warning
+    private static let completeHaptic: SensoryFeedback = .success
+
     var exerciseName: String
     var setIndex: Int
     var totalSets: Int
@@ -18,6 +22,8 @@ struct ActionButton: View {
     @State private var endDate: Date?
     @State private var remainingSeconds: Int64 = 0
     @State private var flashRed = false
+    @State private var hapticTrigger: Int = 0
+    @State private var hapticFeedback: SensoryFeedback = .impact
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -84,6 +90,7 @@ struct ActionButton: View {
             .animation(.easeInOut(duration: 0.2), value: timerState)
         }
         .buttonStyle(.plain)
+        .sensoryFeedback(trigger: hapticTrigger) { _, _ in hapticFeedback }
         .onReceive(timer) { _ in
             guard timerState == .counting, let end = endDate else { return }
             let remaining = Int64(max(0, end.timeIntervalSinceNow))
@@ -94,10 +101,16 @@ struct ActionButton: View {
                     timerState = .waitingToConfirmCompletion
                 } else {
                     timerState = .waitingToStart
+                    triggerHaptic(Self.repHaptic)
                 }
                 completedReps += 1
             }
         }
+    }
+
+    private func triggerHaptic(_ feedback: SensoryFeedback) {
+        hapticFeedback = feedback
+        hapticTrigger += 1
     }
 
     private func handleTap() {
@@ -107,7 +120,9 @@ struct ActionButton: View {
                 endDate = Date.now.addingTimeInterval(Double(duration))
                 remainingSeconds = duration
                 timerState = .counting
+                triggerHaptic(Self.repHaptic)
             case .counting:
+                triggerHaptic(Self.abortHaptic)
                 flashRed = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                     flashRed = false
@@ -120,12 +135,16 @@ struct ActionButton: View {
                     completedReps += 1
                 }
             case .waitingToConfirmCompletion:
+                triggerHaptic(Self.completeHaptic)
                 onAdvance()
             }
         } else {
             completedReps += 1
             if completedReps >= reps {
+                triggerHaptic(Self.completeHaptic)
                 onAdvance()
+            } else {
+                triggerHaptic(Self.repHaptic)
             }
         }
     }
