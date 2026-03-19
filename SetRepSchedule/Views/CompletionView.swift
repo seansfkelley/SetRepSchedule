@@ -79,6 +79,8 @@ struct CompletionRow: View {
                     .foregroundStyle(.secondary)
             }
 
+            Spacer()
+
             if let data = exercise.imageData, let uiImage = UIImage(data: data) {
                 Image(uiImage: uiImage)
                     .resizable()
@@ -86,8 +88,6 @@ struct CompletionRow: View {
                     .frame(width: imageSize, height: imageSize)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-
-            Spacer()
 
             Text("\(Int(completionFraction * 100))%")
                 .font(.title2.monospacedDigit())

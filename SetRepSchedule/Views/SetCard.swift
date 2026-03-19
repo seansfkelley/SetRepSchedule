@@ -36,8 +36,8 @@ struct SetCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemBackground))
-                .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
+                .fill(Color(.tertiarySystemBackground))
+                .shadow(color: .primary.opacity(0.12), radius: 8, y: 3)
         )
     }
 }

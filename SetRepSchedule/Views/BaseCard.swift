@@ -106,8 +106,8 @@ struct BaseCard: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+                .fill(Color(.tertiarySystemBackground))
+                .shadow(color: .primary.opacity(0.12), radius: 12, y: 4)
         )
         .onAppear {
             shuffled = encouragements.shuffled()
