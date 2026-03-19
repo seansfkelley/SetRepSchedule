@@ -106,7 +106,7 @@ struct ExerciseView: View {
                                     onAdvance: { advanceCard() }
                                 )
                                 .padding(.horizontal, 16)
-                                .containerRelativeFrame([.horizontal, .vertical])
+                                .containerRelativeFrame([.horizontal])
                                 .id(card.id)
                             }
                         }
