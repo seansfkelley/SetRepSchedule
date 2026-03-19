@@ -10,34 +10,35 @@ struct SetCard: View {
     var onAdvance: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            ProgressView(value: Double(completedReps), total: Double(max(1, exercise.reps)))
-                .progressViewStyle(.linear)
-                .scaleEffect(y: 2, anchor: .top)
-                .animation(.easeInOut(duration: 0.2), value: completedReps)
+        ZStack {
+            VStack(spacing: 0) {
+                ProgressView(value: Double(completedReps), total: Double(max(1, exercise.reps)))
+                    .progressViewStyle(.linear)
+                    .scaleEffect(y: 2, anchor: .top)
+                    .animation(.easeInOut(duration: 0.2), value: completedReps)
 
-            Text("Set \(setIndex + 1) of \(exercise.sets)")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
+                Text("Set \(setIndex + 1) of \(exercise.sets)")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
 
-            ActionButton(
-                isLastSet: setIndex == exercise.sets - 1,
-                reps: exercise.reps,
-                durationSeconds: exercise.durationSeconds,
-                completedReps: $completedReps,
-                onAdvance: onAdvance
-            )
-            .clipShape(UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 12, bottomTrailingRadius: 12, topTrailingRadius: 0))
+                ActionButton(
+                    isLastSet: setIndex == exercise.sets - 1,
+                    reps: exercise.reps,
+                    durationSeconds: exercise.durationSeconds,
+                    completedReps: $completedReps,
+                    onAdvance: onAdvance
+                )
+            }
         }
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.systemBackground))
-                .shadow(radius: 6)
+                .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 

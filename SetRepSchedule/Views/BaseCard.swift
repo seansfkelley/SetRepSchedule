@@ -5,10 +5,11 @@ import SwiftData
 // in the upper portion, with a dotted placeholder zone at the bottom sized to
 // exactly fit a SetCard (measured by rendering an invisible one).
 struct BaseCard: View {
+    public static let setCardInset: CGFloat = 12
+
     var exercise: Exercise
 
     private let fadeLength: CGFloat = 20
-    private let setZoneInset: CGFloat = 12
 
     private let encouragements: [String] = [
         "Keep it up!", "You've got this!", "Stay steady.", "Nice and easy.",
@@ -34,7 +35,7 @@ struct BaseCard: View {
                     .font(.largeTitle.bold())
                     .multilineTextAlignment(.center)
                     .padding(.top, fadeLength * 3 / 2)
-                    .padding(.horizontal, setZoneInset)
+                    .padding(.horizontal, Self.setCardInset)
                     .padding(.bottom, fadeLength / 2)
             }
 
@@ -66,7 +67,7 @@ struct BaseCard: View {
                             }
                         }
                     }
-                    .padding(.horizontal, setZoneInset)
+                    .padding(.horizontal, Self.setCardInset)
                     .padding(.vertical, fadeLength)
                     .frame(minWidth: geo.size.width, minHeight: geo.size.height)
                 }
@@ -96,7 +97,7 @@ struct BaseCard: View {
                 RoundedRectangle(cornerRadius: 10)
                     .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
                     .foregroundStyle(.tertiary)
-                    .padding(setZoneInset)
+                    .padding(Self.setCardInset)
 
                 Text("^[\(exercise.sets) set](inflect: true) complete!")
                     .font(.title3)
@@ -106,9 +107,8 @@ struct BaseCard: View {
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(.systemBackground))
-                .shadow(radius: 8)
+                .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 16))
         .onAppear {
             shuffled = encouragements.shuffled()
             guard exercise.imageData == nil && exercise.notes.isEmpty else { return }
