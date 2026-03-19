@@ -8,6 +8,7 @@ struct ExerciseView: View {
 
     @State private var completedReps: [UUID: [Int]] = [:]
     @State private var isConfirmingExit: Bool = false
+    @AppStorage("isMuted") private var isMuted: Bool = false
 
     @State private var exerciseIndex: Int = 0
     @State private var completedSetsInCurrentExercise: Int = 0
@@ -143,6 +144,15 @@ struct ExerciseView: View {
                         }
                     }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isMuted.toggle()
+                    } label: {
+                        Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                            .foregroundStyle(isMuted ? .red : .primary)
+                    }
+                }
+
             }
         }
 
