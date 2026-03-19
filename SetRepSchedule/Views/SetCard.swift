@@ -24,6 +24,8 @@ private let encouragements: [String] = [
 ]
 
 struct SetCard: View {
+    private let fadeLength: CGFloat = 24
+
     var exerciseName: String
     var setIndex: Int
     var totalSets: Int
@@ -57,7 +59,6 @@ struct SetCard: View {
             .padding(.top)
 
             GeometryReader { geo in
-                let fadeLength: CGFloat = 24
                 ScrollView {
                     VStack(spacing: 12) {
                         if imageData == nil && notes.isEmpty {
@@ -93,16 +94,13 @@ struct SetCard: View {
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .mask {
-                    LinearGradient(
-                        stops: [
-                            .init(color: .clear, location: 0),
-                            .init(color: .black, location: fadeLength / geo.size.height),
-                            .init(color: .black, location: 1 - fadeLength / geo.size.height),
-                            .init(color: .clear, location: 1),
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
+                    VStack(spacing: 0) {
+                        LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                            .frame(height: fadeLength)
+                        Rectangle()
+                        LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                            .frame(height: fadeLength)
+                    }
                 }
             }
 

@@ -3,9 +3,11 @@ import SwiftData
 
 // Represents one card's position in the exercise sequence.
 private struct CardPosition: Identifiable, Equatable {
-    let id: UUID = UUID()
+    let exerciseId: UUID
     let exerciseIndex: Int
     let setIndex: Int
+
+    var id: String { "\(exerciseId)-\(setIndex)" }
 }
 
 struct ExerciseView: View {
@@ -17,23 +19,21 @@ struct ExerciseView: View {
     @State private var isConfirmingExit: Bool = false
     @State private var showCompletion = false
 
-    // Paging scroll state
     @State private var scrollPosition: ScrollPosition = ScrollPosition()
-    @State private var partialScrollOffsetFraction: CGFloat = 0
 
     // Flat list of all cards in order.
     private var cards: [CardPosition] {
         var result: [CardPosition] = []
         for (ei, exercise) in exercises.enumerated() {
             for si in 0..<exercise.sets {
-                result.append(CardPosition(exerciseIndex: ei, setIndex: si))
+                result.append(CardPosition(exerciseId: exercise.id, exerciseIndex: ei, setIndex: si))
             }
         }
         return result
     }
 
     private var currentCard: CardPosition? {
-        guard let id = scrollPosition.viewID(type: UUID.self) else {
+        guard let id = scrollPosition.viewID(type: String.self) else {
             return cards.first
         }
         return cards.first(where: { $0.id == id }) ?? cards.first
@@ -90,48 +90,30 @@ struct ExerciseView: View {
                 }
 
                 if !showCompletion {
-                    GeometryReader { geo in
-                        ScrollView(.horizontal) {
-                            HStack(spacing: 0) {
-                                ForEach(cards) { card in
-                                    let exercise = exercises[card.exerciseIndex]
-                                    SetCard(
-                                        exerciseName: exercise.name,
-                                        setIndex: card.setIndex,
-                                        totalSets: exercise.sets,
-                                        reps: exercise.reps,
-                                        durationSeconds: exercise.durationSeconds,
-                                        notes: exercise.notes,
-                                        imageData: exercise.imageData,
-                                        completedReps: repBinding(for: card),
-                                        onAdvance: { advanceCard() }
-                                    )
-                                    .padding(.horizontal, 16)
-                                    .frame(width: geo.size.width, height: geo.size.height - 24)
-                                    .id(card.id)
-                                    // Fade/scale based on how far this card is from center
-                                    .scaleEffect(scaleForCard(card, containerWidth: geo.size.width))
-                                }
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 0) {
+                            ForEach(cards) { card in
+                                let exercise = exercises[card.exerciseIndex]
+                                SetCard(
+                                    exerciseName: exercise.name,
+                                    setIndex: card.setIndex,
+                                    totalSets: exercise.sets,
+                                    reps: exercise.reps,
+                                    durationSeconds: exercise.durationSeconds,
+                                    notes: exercise.notes,
+                                    imageData: exercise.imageData,
+                                    completedReps: repBinding(for: card),
+                                    onAdvance: { advanceCard() }
+                                )
+                                .padding(.horizontal, 16)
+                                .containerRelativeFrame([.horizontal, .vertical])
+                                .id(card.id)
                             }
                         }
-                        .scrollTargetBehavior(.paging)
-                        .scrollPosition($scrollPosition)
-                        .scrollIndicators(.hidden)
-                        .onScrollGeometryChange(
-                            for: CGFloat.self,
-                            of: { geometry in
-                                guard let currentId = scrollPosition.viewID(type: UUID.self),
-                                      let currentIdx = cards.firstIndex(where: { $0.id == currentId }) else {
-                                    return 0
-                                }
-                                return (CGFloat(currentIdx) * geometry.containerSize.width - geometry.contentOffset.x) / geometry.containerSize.width
-                            },
-                            action: { _, new in
-                                partialScrollOffsetFraction = new
-                            }
-                        )
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .scrollTargetBehavior(.paging)
+                    .scrollPosition($scrollPosition)
+                    .scrollIndicators(.hidden)
                 }
             }
             .safeAreaInset(edge: .top) {
@@ -179,22 +161,6 @@ struct ExerciseView: View {
                 scrollPosition = ScrollPosition(id: first.id)
             }
         }
-    }
-
-    // Scale card slightly based on swipe progress (current card shrinks as it leaves).
-    private func scaleForCard(_ card: CardPosition, containerWidth: CGFloat) -> CGFloat {
-        guard let currentCard else { return 1 }
-        if card == currentCard {
-            // Shrink slightly as the user swipes this card away
-            return 1.0 - 0.04 * abs(partialScrollOffsetFraction)
-        }
-        // Next card grows in slightly as the current one departs
-        if let currentIdx = cards.firstIndex(of: currentCard),
-           let cardIdx = cards.firstIndex(of: card),
-           cardIdx == currentIdx + 1 {
-            return 0.96 + 0.04 * abs(partialScrollOffsetFraction)
-        }
-        return 1.0
     }
 
     private func initializeCompletedReps() {
