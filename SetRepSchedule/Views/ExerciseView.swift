@@ -21,6 +21,13 @@ struct ExerciseView: View {
     @State private var progressBarFrame: CGRect = .zero
     @State private var setCompletionTrigger: Int = 0
 
+    // Keyed by slot index (exercise index, or exercises.count for completion).
+    // Only slots present in this dict are rendered; at most two are present at once.
+    @State private var cardStates: [Int: CardState] = [0: .entering]
+
+    public static let exitDuration: Double = 0.3
+    public static let entryDuration: Double = 0.3
+
     private var currentExercise: Exercise? {
         guard exerciseIndex < exercises.count else { return nil }
         return exercises[exerciseIndex]
@@ -48,29 +55,40 @@ struct ExerciseView: View {
                 Color(.systemGroupedBackground)
                     .ignoresSafeArea()
 
-                if isCompleted {
-                    CompletionView(
-                        exercises: exercises,
-                        completedReps: completedReps,
-                        onDone: { mode = .planning }
-                    )
-                }
-
-                if let exercise = currentExercise, !isCompleted {
-                    DeckView(
-                        exercise: exercise,
-                        setIndex: completedSetsInCurrentExercise,
-                        progressViewTarget: progressBarFrame,
-                        onSetWillComplete: {
-                            setCompletionTrigger += 1
-                        },
-                        onSetComplete: { reps in
-                            appendReps(reps, for: exercise)
-                            handleSetComplete()
+                ForEach(Array(cardStates.keys.sorted()), id: \.self) { idx in
+                    let state = cardStates[idx] ?? .entering
+                    Group {
+                        if idx < exercises.count {
+                            DeckView(
+                                exercise: exercises[idx],
+                                setIndex: idx == exerciseIndex ? completedSetsInCurrentExercise : 0,
+                                progressViewTarget: progressBarFrame,
+                                onSetWillComplete: {
+                                    setCompletionTrigger += 1
+                                },
+                                onSetComplete: { reps in
+                                    appendReps(reps, for: exercises[idx])
+                                    handleSetComplete()
+                                }
+                            )
+                            .padding(.horizontal, 16)
+                        } else {
+                            CompletionView(
+                                exercises: exercises,
+                                completedReps: completedReps,
+                                onDone: { mode = .planning }
+                            )
                         }
-                    )
-                    .id(exerciseIndex)
-                    .padding(.horizontal, 16)
+                    }
+                    .scaleEffect(state.scale)
+                    .opacity(state.opacity)
+                    .allowsHitTesting(state == .visible)
+                    .animation(.easeOut(duration: Self.entryDuration), value: state)
+                }
+            }
+            .onAppear {
+                withAnimation(.easeOut(duration: Self.entryDuration)) {
+                    cardStates[0] = .visible
                 }
             }
             .safeAreaInset(edge: .top) {
@@ -135,13 +153,31 @@ struct ExerciseView: View {
     private func handleSetComplete() {
         guard let exercise = currentExercise else { return }
         completedSetsInCurrentExercise += 1
-        if completedSetsInCurrentExercise >= exercise.sets {
-            let nextIdx = exerciseIndex + 1
+        guard completedSetsInCurrentExercise >= exercise.sets else { return }
+
+        let currentIdx = exerciseIndex
+        let nextIdx = currentIdx + 1
+
+        withAnimation(.easeIn(duration: Self.exitDuration)) {
+            cardStates[currentIdx] = .exiting
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(Self.exitDuration))
+            cardStates.removeValue(forKey: currentIdx)
             if nextIdx >= exercises.count {
                 isCompleted = true
+                let completionIdx = exercises.count
+                cardStates[completionIdx] = .entering
+                withAnimation(.easeOut(duration: Self.entryDuration)) {
+                    cardStates[completionIdx] = .visible
+                }
             } else {
                 exerciseIndex = nextIdx
                 completedSetsInCurrentExercise = 0
+                cardStates[nextIdx] = .entering
+                withAnimation(.easeOut(duration: Self.entryDuration)) {
+                    cardStates[nextIdx] = .visible
+                }
             }
         }
     }
@@ -156,6 +192,26 @@ private struct ProgressBarFrameKey: PreferenceKey {
     static var defaultValue: CGRect = .zero
     static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
         value = nextValue()
+    }
+}
+
+private enum CardState: Equatable {
+    case entering, visible, exiting
+
+    var scale: CGFloat {
+        switch self {
+        case .entering: 0.8
+        case .visible:  1.0
+        case .exiting:  1.3
+        }
+    }
+
+    var opacity: Double {
+        switch self {
+        case .entering: 0
+        case .visible:  1
+        case .exiting:  0
+        }
     }
 }
 

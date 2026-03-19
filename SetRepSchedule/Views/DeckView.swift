@@ -9,7 +9,7 @@ struct DeckView: View {
     var onSetComplete: (_ completedReps: Int) -> Void
 
     @State private var completedReps: Int = 0
-    @State private var highestDealtIndex: Int = 0
+    @State private var dealtCount: Int = 0
 
     var body: some View {
         BaseCard(exercise: exercise)
@@ -17,7 +17,7 @@ struct DeckView: View {
                 ZStack(alignment: .bottom) {
                     ForEach((0..<exercise.sets).reversed(), id: \.self) { cardIndex in
                         let isTop = cardIndex == setIndex
-                        let isDealt = cardIndex >= highestDealtIndex
+                        let isDealt = cardIndex >= (exercise.sets - dealtCount)
                         DeckCard(
                             exercise: exercise,
                             setIndex: cardIndex,
@@ -31,7 +31,7 @@ struct DeckView: View {
                             }
                         )
                         .opacity(isDealt ? 1 : 0)
-                        .offset(y: isDealt ? 0 : -60)
+                        .offset(y: isDealt ? 0 : -100)
                         .if(cardIndex < setIndex) { view in
                             view.hidden()
                         }
@@ -40,12 +40,14 @@ struct DeckView: View {
                 .padding(BaseCard.setCardInset)
             }
             .task(id: exercise.id) {
-                highestDealtIndex = exercise.sets - 1
+                try? await Task.sleep(for: .seconds(ExerciseView.entryDuration))
+
+                dealtCount = 0
                 for i in 0..<exercise.sets {
-                    try? await Task.sleep(for: .seconds(Double(i) * 0.1))
+                    try? await Task.sleep(for: .seconds(Double(i) * 0.05))
                     guard !Task.isCancelled else { return }
                     withAnimation(.easeOut(duration: 0.2)) {
-                        highestDealtIndex -= 1
+                        dealtCount += 1
                     }
                 }
             }
