@@ -12,6 +12,10 @@ struct ExerciseView: View {
     @State private var exerciseIndex: Int = 0
     @State private var completedSetsInCurrentExercise: Int = 0
 
+    private func appendReps(_ reps: Int, for exercise: Exercise) {
+        completedReps[exercise.id, default: []].append(reps)
+    }
+
     @State private var isCompleted: Bool = false
 
     @State private var progressBarFrame: CGRect = .zero
@@ -37,15 +41,6 @@ struct ExerciseView: View {
         return count
     }
 
-    private func repBinding(for index: Int) -> Binding<[Int]> {
-        guard index < exercises.count else { return .constant([]) }
-        let id = exercises[index].id
-        return Binding(
-            get: { self.completedReps[id, default: []] },
-            set: { self.completedReps[id] = $0 }
-        )
-    }
-
     var body: some View {
         NavigationStack {
             ZStack {
@@ -63,9 +58,12 @@ struct ExerciseView: View {
                 if let exercise = currentExercise, !isCompleted {
                     DeckView(
                         exercise: exercise,
-                        completedReps: repBinding(for: exerciseIndex),
+                        setIndex: completedSetsInCurrentExercise,
                         progressViewTarget: progressBarFrame,
-                        onSetComplete: { handleSetComplete() }
+                        onSetComplete: { reps in
+                            appendReps(reps, for: exercise)
+                            handleSetComplete()
+                        }
                     )
                     .id(exerciseIndex)
                     .padding(.horizontal, 16)
@@ -106,11 +104,7 @@ struct ExerciseView: View {
                 }
             }
         }
-        .onAppear {
-            for exercise in exercises {
-                completedReps[exercise.id] = Array(repeating: 0, count: exercise.sets)
-            }
-        }
+
     }
 
     // MARK: - Set Completion
