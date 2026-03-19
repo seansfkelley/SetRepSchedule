@@ -146,7 +146,8 @@ private struct DeckCard: View {
         }
         .scaleEffect(state.scale)
         .offset(state.offset)
-        .opacity(state.opacity)
+        .opacity(isDealt ? state.opacity : 0)
+        .offset(y: isDealt ? 0 : -60)
         .highPriorityGesture(
             DragGesture()
                 .onChanged { if isTop && !state.isFlying { state.onDragChanged($0.translation) } }
@@ -191,9 +192,19 @@ private struct DealAnimationPreview: View {
 
 private struct StaticDeckPreview: View {
     let exercise: Exercise
-    let currentSetIndex: Int
-    let completedReps: [Int]
+    let initialSetIndex: Int
+    let initialCompletedReps: [Int]
+    @State private var currentSetIndex: Int
+    @State private var completedReps: [Int]
     @State private var progressViewTarget: CGRect = .zero
+
+    init(exercise: Exercise, currentSetIndex: Int, completedReps: [Int]) {
+        self.exercise = exercise
+        self.initialSetIndex = currentSetIndex
+        self.initialCompletedReps = completedReps
+        _currentSetIndex = State(initialValue: currentSetIndex)
+        _completedReps = State(initialValue: completedReps)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -204,9 +215,9 @@ private struct StaticDeckPreview: View {
             DeckView(
                 exercise: exercise,
                 currentSetIndex: currentSetIndex,
-                completedReps: .constant(completedReps),
+                completedReps: $completedReps,
                 progressViewTarget: progressViewTarget,
-                onSetComplete: { _ in }
+                onSetComplete: { setIndex in currentSetIndex = setIndex + 1 }
             )
             .padding()
         }
@@ -223,8 +234,8 @@ private struct StaticDeckPreview: View {
 
 #Preview("Mid-deck (set 2 of 3 on top)") {
     let container = previewContainer()
-    let exercise = previewExercise(in: container, name: "Push-ups", sets: 3, reps: 15)
-    StaticDeckPreview(exercise: exercise, currentSetIndex: 1, completedReps: [15, 0, 0])
+    let exercise = previewExercise(in: container, name: "Push-ups", sets: 3, reps: 5)
+    StaticDeckPreview(exercise: exercise, currentSetIndex: 1, completedReps: [5, 2, 0])
         .modelContainer(container)
 }
 

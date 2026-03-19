@@ -13,20 +13,8 @@ struct ExerciseView: View {
     @State private var currentSetIndex: Int = 0
 
     @State private var isCompleted: Bool = false
-    @State private var completionFadeIn: CGFloat = 0
-
-    // Entering animation
-    @State private var baseCardVisible: Bool = false
-
-    // Base card exit (on last set completion)
-    @State private var baseCardExitProgress: CGFloat = 0
-
-    // Exercise transition
-    @State private var isTransitioning: Bool = false
-    @State private var nextViewFadeIn: CGFloat = 0
 
     @State private var progressBarFrame: CGRect = .zero
-    @State private var progressBarJiggle: CGFloat = 1
 
     private var currentExercise: Exercise? {
         guard exerciseIndex < exercises.count else { return nil }
@@ -70,8 +58,6 @@ struct ExerciseView: View {
                         completedReps: completedReps,
                         onDone: { mode = .planning }
                     )
-                    .opacity(completionFadeIn)
-                    .scaleEffect(0.85 + completionFadeIn * 0.15)
                 }
 
                 if let exercise = currentExercise, !isCompleted {
@@ -85,27 +71,12 @@ struct ExerciseView: View {
                         }
                     )
                     .padding(.horizontal, 16)
-                    .opacity(baseCardVisible ? max(0, 1 - baseCardExitProgress) : 0)
-                    .scaleEffect(
-                        baseCardVisible ? (1 + baseCardExitProgress * 0.15) : 0.92,
-                        anchor: .center
-                    )
                 }
-
-                // Next exercise or completion preview during transitions
-                if isTransitioning {
-                    nextViewPreview()
-                        .opacity(nextViewFadeIn)
-                        .scaleEffect(0.85 + nextViewFadeIn * 0.15, anchor: .center)
-                }
-
             }
             .safeAreaInset(edge: .top) {
                 GeometryReader { geo in
                     ProgressView(value: Double(completedSetsCount), total: Double(max(1, totalSets)))
                         .progressViewStyle(.linear)
-                        .scaleEffect(CGSize(width: 1, height: progressBarJiggle), anchor: .center)
-                        .animation(.spring(response: 0.2, dampingFraction: 0.3), value: progressBarJiggle)
                         .padding(.horizontal)
                         .padding(.vertical, 8)
                         .opacity(isCompleted ? 0 : 1)
@@ -138,47 +109,9 @@ struct ExerciseView: View {
             }
         }
         .onAppear {
-            initializeState()
-        }
-    }
-
-    @ViewBuilder
-    private func nextViewPreview() -> some View {
-        let nextIdx = exerciseIndex + 1
-        if nextIdx < exercises.count {
-            DeckView(
-                exercise: exercises[nextIdx],
-                currentSetIndex: 0,
-                completedReps: repBinding(for: nextIdx),
-                progressViewTarget: progressBarFrame,
-                onSetComplete: { _ in }
-            )
-            .padding(.horizontal, 16)
-        } else {
-            CompletionView(
-                exercises: exercises,
-                completedReps: completedReps,
-                onDone: { mode = .planning }
-            )
-        }
-    }
-
-    // MARK: - Setup
-
-    private func initializeState() {
-        for exercise in exercises {
-            completedReps[exercise.id] = Array(repeating: 0, count: exercise.sets)
-        }
-        playEnteringAnimation()
-    }
-
-    // MARK: - Entering Animation
-
-    private func playEnteringAnimation() {
-        baseCardVisible = false
-
-        withAnimation(.easeOut(duration: 0.35)) {
-            baseCardVisible = true
+            for exercise in exercises {
+                completedReps[exercise.id] = Array(repeating: 0, count: exercise.sets)
+            }
         }
     }
 
@@ -189,66 +122,21 @@ struct ExerciseView: View {
         let isLastSet = setIndex == exercise.sets - 1
 
         if isLastSet {
-            // Base card begins fading out at 25% of the flight (~0.14s)
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(0.14))
-                withAnimation(.easeIn(duration: 0.25)) {
-                    baseCardExitProgress = 1
-                }
-            }
-            // At 75% of flight (~0.41s), trigger next exercise or completion
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(0.41))
-                advanceExercise()
-            }
+            advanceExercise()
         } else {
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(0.1))
-                currentSetIndex = setIndex + 1
-            }
-        }
-
-        // Jiggle progress bar when card arrives (~flight duration)
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(0.55))
-            progressBarJiggle = 1.6
-            withAnimation(.spring(response: 0.25, dampingFraction: 0.35)) {
-                progressBarJiggle = 1
-            }
+            currentSetIndex = setIndex + 1
         }
     }
 
     private func advanceExercise() {
         let nextIdx = exerciseIndex + 1
-        isTransitioning = true
-
-        withAnimation(.easeOut(duration: 0.4)) {
-            nextViewFadeIn = 1
-        }
-
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(0.4))
-
-            if nextIdx >= exercises.count {
-                isCompleted = true
-                isTransitioning = false
-                nextViewFadeIn = 0
-                withAnimation(.easeOut(duration: 0.3)) {
-                    completionFadeIn = 1
-                }
-            } else {
-                exerciseIndex = nextIdx
-                currentSetIndex = 0
-                baseCardExitProgress = 0
-                baseCardVisible = false
-                isTransitioning = false
-                nextViewFadeIn = 0
-                playEnteringAnimation()
-            }
+        if nextIdx >= exercises.count {
+            isCompleted = true
+        } else {
+            exerciseIndex = nextIdx
+            currentSetIndex = 0
         }
     }
-
-
 }
 
 private struct ProgressBarFrameKey: PreferenceKey {
