@@ -65,50 +65,34 @@ private class FlyingCardState {
 
 struct DeckView: View {
     var exercise: Exercise
-    @Binding var completedReps: [Int]
+    var setIndex: Int
     var progressViewTarget: CGRect
-    var onSetComplete: () -> Void
+    var onSetComplete: (_ completedReps: Int) -> Void
 
-    @State private var dismissedSets: Set<Int> = []
+    @State private var completedReps: Int = 0
     @State private var dealtCount: Int = 0
 
-    private func repBinding(for setIndex: Int) -> Binding<Int> {
-        Binding(
-            get: { setIndex < completedReps.count ? completedReps[setIndex] : 0 },
-            set: { newValue in
-                while completedReps.count <= setIndex { completedReps.append(0) }
-                completedReps[setIndex] = newValue
-            }
-        )
-    }
-
     var body: some View {
-        // undismissedIndices[0] is the top card, [1] is behind it, etc.
-        let undismissedIndices = (0..<exercise.sets).filter { !dismissedSets.contains($0) }
-
-        return BaseCard(exercise: exercise)
+        BaseCard(exercise: exercise)
             .overlay(alignment: .bottom) {
                 ZStack(alignment: .bottom) {
-                    ForEach((0..<exercise.sets).reversed(), id: \.self) { setIndex in
-                        let stackIndex = undismissedIndices.firstIndex(of: setIndex) ?? -1
-                        let isTop = stackIndex == 0
-                        let isDealt = setIndex < dealtCount
-                        let isDismissed = dismissedSets.contains(setIndex)
-
+                    ForEach((0..<exercise.sets).reversed(), id: \.self) { stackIndex in
+                        let isTop = stackIndex == setIndex
                         DeckCard(
                             exercise: exercise,
                             setIndex: setIndex,
                             isTop: isTop,
-                            isDealt: isDealt,
+                            isDealt: setIndex < dealtCount,
                             progressViewTarget: progressViewTarget,
-                            completedReps: repBinding(for: setIndex),
+                            completedReps: isTop ? $completedReps : .constant(0),
                             onSetComplete: {
-                                dismissedSets.insert(setIndex)
-                                onSetComplete()
-                            }
+                                onSetComplete(completedReps)
+                                completedReps = 0
+                            },
                         )
-                        .opacity(isDismissed ? 0 : 1)
-                        .allowsHitTesting(!isDismissed)
+                        .if(stackIndex < setIndex) { view in
+                            view.hidden()
+                        }
                     }
                 }
                 .padding(BaseCard.setCardInset)
