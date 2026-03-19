@@ -2,8 +2,7 @@ import SwiftUI
 import Combine
 
 enum TimerState {
-    case idle
-    case counting
+    case waitingToStart, counting, waitingToConfirmCompletion
 }
 
 struct ActionButton: View {
@@ -15,7 +14,7 @@ struct ActionButton: View {
     @Binding var completedReps: Int
     var onAdvance: () -> Void
 
-    @State private var timerState: TimerState = .idle
+    @State private var timerState: TimerState = .waitingToStart
     @State private var endDate: Date?
     @State private var remainingSeconds: Int64 = 0
     @State private var flashRed = false
@@ -39,10 +38,15 @@ struct ActionButton: View {
     }
 
     private var buttonColor: Color {
-        if flashRed { return .red }
-        if timerState == .counting { return Color(.systemBlue).opacity(0.15) }
-        if isLastAction && durationSeconds == nil { return .green }
-        return .blue
+        if flashRed {
+            .red
+        } else if timerState == .counting {
+            Color(.systemBlue).opacity(0.15)
+        } else if timerState == .waitingToConfirmCompletion || (isLastAction && durationSeconds == nil) {
+            .green
+        } else {
+            .blue
+        }
     }
 
     var body: some View {
@@ -52,7 +56,7 @@ struct ActionButton: View {
             VStack(spacing: 8) {
                 if let duration = durationSeconds {
                     switch timerState {
-                    case .idle:
+                    case .waitingToStart:
                         let m = Int(duration / 60)
                         let s = Int(duration % 60)
                         Text("Start (\(m):\(String(format: "%02d", s)))")
@@ -62,6 +66,9 @@ struct ActionButton: View {
                         Text(String(format: "%d:%02d", Int(remainingSeconds / 60), Int(remainingSeconds % 60)))
                             .font(.system(size: 48, weight: .bold).monospacedDigit())
                         Text(repSubtitle)
+                    case .waitingToConfirmCompletion:
+                        Text(completeLabel)
+                            .font(.title.bold())
                     }
                 } else {
                     Text(isLastAction ? completeLabel : "Complete Rep")
@@ -70,6 +77,7 @@ struct ActionButton: View {
                 }
             }
             .foregroundStyle(timerState == .counting ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color.white))
+            .contentTransition(.identity)
             .frame(maxWidth: .infinity, minHeight: 150)
             .background(buttonColor)
             .animation(.easeInOut(duration: 0.15), value: flashRed)
@@ -81,9 +89,13 @@ struct ActionButton: View {
             let remaining = Int64(max(0, end.timeIntervalSinceNow))
             remainingSeconds = remaining
             if remaining == 0 {
-                timerState = .idle
                 endDate = nil
-                countRep()
+                if isLastRep {
+                    timerState = .waitingToConfirmCompletion
+                } else {
+                    timerState = .waitingToStart
+                }
+                completedReps += 1
             }
         }
     }
@@ -91,7 +103,7 @@ struct ActionButton: View {
     private func handleTap() {
         if let duration = durationSeconds {
             switch timerState {
-            case .idle:
+            case .waitingToStart:
                 endDate = Date.now.addingTimeInterval(Double(duration))
                 remainingSeconds = duration
                 timerState = .counting
@@ -99,22 +111,23 @@ struct ActionButton: View {
                 flashRed = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                     flashRed = false
-                    countRep()
+                    endDate = nil
+                    if isLastRep {
+                        timerState = .waitingToConfirmCompletion
+                    } else {
+                        timerState = .waitingToStart
+                    }
+                    completedReps += 1
                 }
+            case .waitingToConfirmCompletion:
+                onAdvance()
             }
         } else {
-            countRep()
+            completedReps += 1
+            if completedReps >= reps {
+                onAdvance()
+            }
         }
-    }
-
-    private func countRep() {
-        completedReps += 1
-        if completedReps >= reps {
-            onAdvance()
-        }
-        timerState = .idle
-        endDate = nil
-        remainingSeconds = durationSeconds ?? 0
     }
 }
 
