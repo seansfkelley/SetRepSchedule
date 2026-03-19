@@ -44,7 +44,7 @@ struct BaseCard: View {
                     VStack(spacing: 12) {
                         if exercise.imageData == nil && exercise.notes.isEmpty {
                             Text(currentPhrase)
-                                .font(.title2)
+                                .font(.title)
                                 .foregroundStyle(.tertiary)
                                 .multilineTextAlignment(.center)
                                 .id(phraseIndex)
@@ -61,7 +61,7 @@ struct BaseCard: View {
                             }
                             if !exercise.notes.isEmpty {
                                 Text(exercise.notes)
-                                    .font(.body)
+                                    .font(.title3)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
                         }
@@ -83,22 +83,24 @@ struct BaseCard: View {
                 .animation(.easeInOut(duration: 0.4), value: phraseIndex)
             }
 
-            // Dotted zone: sized by an invisible SetCard placed underneath the border
-            ZStack {
-                // Invisible SetCard defines the height
-                SetCard(
-                    exercise: exercise,
-                    setIndex: 0,
-                    completedReps: .constant(0),
-                    onAdvance: {}
-                )
-                .hidden()
-
-                // Dotted border drawn on top
+            // Dotted zone: hidden SetCard (with matching inset) drives the height.
+            // The overlay fills exactly that padded area, so the border hugs the card edge.
+            SetCard(
+                exercise: exercise,
+                setIndex: 0,
+                completedReps: .constant(0),
+                onAdvance: {}
+            )
+            .hidden()
+            .overlay {
                 RoundedRectangle(cornerRadius: 10)
                     .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
                     .foregroundStyle(.tertiary)
                     .padding(setZoneInset)
+
+                Text("^[\(exercise.sets) set](inflect: true) complete!")
+                    .font(.title3)
+                    .foregroundStyle(.tertiary)
             }
         }
         .background(
@@ -164,7 +166,7 @@ struct BaseCard: View {
         name: "Squats",
         sets: 3,
         reps: 12,
-        notes: "Keep your chest up and knees tracking over your toes. Go to parallel or below.",
+        notes: "Keep your chest up and knees tracking over your toes. Go to parallel or below.\nKeep your chest up and knees tracking over your toes. Go to parallel or below.\nKeep your chest up and knees tracking over your toes. Go to parallel or below.\nKeep your chest up and knees tracking over your toes. Go to parallel or below.",
         imageData: previewImageData(color: .systemOrange)
     )
     BaseCard(exercise: exercise)
