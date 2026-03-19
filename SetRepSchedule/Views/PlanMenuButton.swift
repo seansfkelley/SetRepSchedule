@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct PlanMenuButton: View {
-    @Query private var plans: [Plan]
+    @Query(sort: \Plan.name) private var plans: [Plan]
     var selectedPlanId: UUID?
     var currentPlanName: String
     var onSelectPlan: (Plan) -> Void

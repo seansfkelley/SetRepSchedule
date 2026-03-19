@@ -114,7 +114,7 @@ struct ExerciseView: View {
                                 onAdvance: {}
                             )
                             .padding(.horizontal, 16)
-                            .frame(maxHeight: geo.size.height - 24)
+                            .frame(maxHeight: max(0, geo.size.height - 24))
                             .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
                             .offset(x: geo.size.width + cardOffset)
                             .allowsHitTesting(false)
@@ -132,7 +132,7 @@ struct ExerciseView: View {
                             onAdvance: advanceCard
                         )
                         .padding(.horizontal, 16)
-                        .frame(maxHeight: geo.size.height - 24)
+                        .frame(maxHeight: max(0, geo.size.height - 24))
                         .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
                         .offset(x: cardOffset)
                         .rotationEffect(.degrees(cardRotation))
@@ -194,8 +194,12 @@ struct ExerciseView: View {
                         Button {
                             mode = .planning
                         } label: {
-                            Label("Return", systemImage: "chevron.left")
-                                .labelStyle(.titleAndIcon)
+                            HStack(spacing: 6) {
+                                Image(systemName: "chevron.left")
+                                Text("Return")
+                                    .font(.title3)
+                            }
+                            .padding(.horizontal, 4)
                         }
                     } else if isConfirmingExit {
                         Button("End Exercises") {

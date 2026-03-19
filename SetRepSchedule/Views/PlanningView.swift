@@ -125,9 +125,7 @@ struct PlanningView: View {
                         PlanMenuButton(
                             selectedPlanId: selectedPlanId,
                             currentPlanName: plan.name,
-                            onSelectPlan: { plan in
-                                selectedPlanId = plan.id
-                            },
+                            onSelectPlan: { selectedPlanId = $0.id },
                             onCreateNewPlan: createNewPlan,
                             onDeletePlan: {
                                 if plan.exercises.isEmpty {
@@ -153,12 +151,12 @@ struct PlanningView: View {
     private func createNewPlan() {
         let newPlan = Plan(name: "Untitled Plan")
         modelContext.insert(newPlan)
+        try? modelContext.save()
         selectedPlanId = newPlan.id
     }
 
     private func deletePlan() {
         modelContext.delete(plan)
-        // Try to select another plan
         let remaining = plans.filter { $0.id != plan.id }
         selectedPlanId = remaining.first?.id
     }
