@@ -25,14 +25,6 @@ struct ExerciseView: View {
     @State private var isTransitioning: Bool = false
     @State private var nextViewFadeIn: CGFloat = 0
 
-    // Flying card overlays
-    private struct FlyingCardInfo: Identifiable {
-        var id: UUID = UUID()
-        var setIndex: Int
-        var startFrame: CGRect
-    }
-    @State private var flyingCards: [FlyingCardInfo] = []
-
     @State private var progressBarFrame: CGRect = .zero
     @State private var progressBarJiggle: CGFloat = 1
 
@@ -88,8 +80,8 @@ struct ExerciseView: View {
                         currentSetIndex: currentSetIndex,
                         completedReps: repBinding(for: exerciseIndex),
                         progressViewTarget: progressBarFrame,
-                        onSetComplete: { setIndex, cardFrame in
-                            handleSetComplete(setIndex: setIndex, cardFrame: cardFrame)
+                        onSetComplete: { setIndex in
+                            handleSetComplete(setIndex: setIndex)
                         }
                     )
                     .padding(.horizontal, 16)
@@ -107,36 +99,6 @@ struct ExerciseView: View {
                         .scaleEffect(0.85 + nextViewFadeIn * 0.15, anchor: .center)
                 }
 
-                // Flying card overlays in screen coordinate space
-                GeometryReader { geo in
-                    let localOrigin = geo.frame(in: .global).origin
-                    ForEach(flyingCards) { info in
-                        if let exercise = currentExercise {
-                            FlyingCard(
-                                exercise: exercise,
-                                setIndex: info.setIndex,
-                                startFrame: CGRect(
-                                    origin: CGPoint(
-                                        x: info.startFrame.minX - localOrigin.x,
-                                        y: info.startFrame.minY - localOrigin.y
-                                    ),
-                                    size: info.startFrame.size
-                                ),
-                                targetFrame: CGRect(
-                                    origin: CGPoint(
-                                        x: progressBarFrame.minX - localOrigin.x,
-                                        y: progressBarFrame.minY - localOrigin.y
-                                    ),
-                                    size: progressBarFrame.size
-                                ),
-                                onComplete: {
-                                    flyingCards.removeAll { $0.id == info.id }
-                                    triggerProgressBarJiggle()
-                                }
-                            )
-                        }
-                    }
-                }
             }
             .safeAreaInset(edge: .top) {
                 GeometryReader { geo in
@@ -189,7 +151,7 @@ struct ExerciseView: View {
                 currentSetIndex: 0,
                 completedReps: repBinding(for: nextIdx),
                 progressViewTarget: progressBarFrame,
-                onSetComplete: { _, _ in }
+                onSetComplete: { _ in }
             )
             .padding(.horizontal, 16)
         } else {
@@ -222,11 +184,9 @@ struct ExerciseView: View {
 
     // MARK: - Set Completion
 
-    private func handleSetComplete(setIndex: Int, cardFrame: CGRect) {
+    private func handleSetComplete(setIndex: Int) {
         guard let exercise = currentExercise else { return }
         let isLastSet = setIndex == exercise.sets - 1
-
-        flyingCards.append(FlyingCardInfo(setIndex: setIndex, startFrame: cardFrame))
 
         if isLastSet {
             // Base card begins fading out at 25% of the flight (~0.14s)
@@ -242,10 +202,18 @@ struct ExerciseView: View {
                 advanceExercise()
             }
         } else {
-            // Advance to next set card after a short moment
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(0.1))
                 currentSetIndex = setIndex + 1
+            }
+        }
+
+        // Jiggle progress bar when card arrives (~flight duration)
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(0.55))
+            progressBarJiggle = 1.6
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.35)) {
+                progressBarJiggle = 1
             }
         }
     }
@@ -280,12 +248,7 @@ struct ExerciseView: View {
         }
     }
 
-    private func triggerProgressBarJiggle() {
-        progressBarJiggle = 1.6
-        withAnimation(.spring(response: 0.25, dampingFraction: 0.35)) {
-            progressBarJiggle = 1
-        }
-    }
+
 }
 
 private struct ProgressBarFrameKey: PreferenceKey {
