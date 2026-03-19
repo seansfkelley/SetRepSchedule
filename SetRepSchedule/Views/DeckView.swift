@@ -67,7 +67,7 @@ private struct DeckCard: View {
             isActive: isTop,
             completedReps: $completedReps,
             onAdvance: {
-                state.fly(to: state.targetOffset, onComplete: onSetComplete)
+                state.fly { onSetComplete() }
             }
         )
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
@@ -86,7 +86,7 @@ private struct DeckCard: View {
                 }
                 .onEnded {
                     if isTop && !state.isFlying {
-                        state.onDragEnded($0, onComplete: onSetComplete)
+                        state.onDragEnded($0) { onSetComplete() }
                     }
                 },
             isEnabled: isTop && !state.isFlying
@@ -107,15 +107,6 @@ private class FlyingCardState {
 
     var cardFrame: CGRect = .zero
     var targetFrame: CGRect = .zero
-
-    var targetOffset: CGSize {
-        guard cardFrame != .zero, targetFrame != .zero else { return .zero }
-        return CGSize(
-            width: targetFrame.midX - cardFrame.midX,
-            height: targetFrame.midY - cardFrame.midY,
-        )
-    }
-
     let commitThreshold: CGFloat = 400
 
     func onDragChanged(_ translation: CGSize) {
@@ -126,7 +117,7 @@ private class FlyingCardState {
         let predicted = value.predictedEndTranslation
         let dist = hypot(predicted.width, predicted.height)
         if dist > commitThreshold {
-            fly(to: targetOffset, velocity: value.velocity, onComplete: onComplete)
+            fly(velocity: value.velocity, onComplete: onComplete)
         } else {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                 offset = .zero
@@ -134,23 +125,26 @@ private class FlyingCardState {
         }
     }
 
-    func fly(to dest: CGSize, velocity: CGSize = .zero, onComplete: @escaping () -> Void) {
+    func fly(onComplete: @escaping () -> Void) {
+        fly(velocity: .zero, onComplete: onComplete)
+    }
+
+    private func fly(velocity: CGSize = .zero, onComplete: @escaping () -> Void) {
         guard !isFlying else { return }
 
-        // Normalize velocity to distance for interpolatingSpring's initialVelocity (per-unit).
-        let dx = dest.width - offset.width
-        let dy = dest.height - offset.height
-        let initialVelocity: Double
-        if abs(dy) >= abs(dx) {
-            initialVelocity = dy != 0 ? Double(velocity.height / dy) : 0
-        } else {
-            initialVelocity = dx != 0 ? Double(velocity.width / dx) : 0
-        }
+        let dest = CGSize(
+            width: targetFrame.midX - cardFrame.midX,
+            height: targetFrame.midY - cardFrame.midY,
+        )
 
         isFlying = true
 
         withAnimation(
-            .interpolatingSpring(duration: 0.3, bounce: 0, initialVelocity: initialVelocity),
+            // I'd like to use initialVelocity but the figures I get from the drag gesture are
+            // complete nonsense even on a real device. There will be very high-magnitude velocities
+            // even if you hold your finger (or the mouse, in the simulator) still for a full second
+            // before releasing it.
+            .interpolatingSpring(mass: 1.0, stiffness: 300, damping: 35),
             completionCriteria: .logicallyComplete
         ) {
             offset = dest
