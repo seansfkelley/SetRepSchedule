@@ -4,7 +4,6 @@ import Combine
 enum TimerState {
     case idle
     case counting
-    case expired
 }
 
 struct ActionButton: View {
@@ -25,16 +24,13 @@ struct ActionButton: View {
 
     private var isLastSet: Bool { setIndex == totalSets - 1 }
     private var isLastRep: Bool { completedReps == reps - 1 }
+    private var isLastAction: Bool { isLastRep && isLastSet }
 
-    private var actionLabel: String {
-        if isLastRep {
-            if isLastSet {
-                return "Complete Exercise"
-            } else {
-                return "Complete Set \(setIndex + 1) of \(totalSets)"
-            }
+    private var completeLabel: String {
+        if isLastSet {
+            return "Complete Exercise"
         } else {
-            return "Complete Rep"
+            return "Complete Set \(setIndex + 1) of \(totalSets)"
         }
     }
 
@@ -44,12 +40,9 @@ struct ActionButton: View {
 
     private var buttonColor: Color {
         if flashRed { return .red }
-        guard durationSeconds != nil else { return .green }
-        switch timerState {
-        case .idle: return Color(.systemBackground)
-        case .counting: return Color(.systemBackground)
-        case .expired: return .green
-        }
+        if timerState == .counting { return Color(.systemBlue).opacity(0.15) }
+        if isLastAction && durationSeconds == nil { return .green }
+        return .blue
     }
 
     var body: some View {
@@ -57,41 +50,32 @@ struct ActionButton: View {
             handleTap()
         } label: {
             VStack(spacing: 4) {
-                if durationSeconds != nil {
+                if let duration = durationSeconds {
                     switch timerState {
                     case .idle:
-                        let m = Int((durationSeconds ?? 0) / 60)
-                        let s = Int((durationSeconds ?? 0) % 60)
+                        let m = Int(duration / 60)
+                        let s = Int(duration % 60)
                         Text("Start (\(m):\(String(format: "%02d", s)))")
                             .font(.title3.bold())
                         Text(repSubtitle)
                             .font(.subheadline)
                             .opacity(0.8)
                     case .counting:
-                        HStack(spacing: 6) {
-                            Image(systemName: "clock")
-                            Text(String(format: "%d:%02d", Int(remainingSeconds / 60), Int(remainingSeconds % 60)))
-                                .font(.title3.bold().monospacedDigit())
-                        }
-                        Text(repSubtitle)
-                            .font(.subheadline)
-                            .opacity(0.8)
-                    case .expired:
-                        Text(actionLabel)
-                            .font(.title3.bold())
+                        Text(String(format: "%d:%02d", Int(remainingSeconds / 60), Int(remainingSeconds % 60)))
+                            .font(.system(size: 48, weight: .bold).monospacedDigit())
                         Text(repSubtitle)
                             .font(.subheadline)
                             .opacity(0.8)
                     }
                 } else {
-                    Text(actionLabel)
+                    Text(isLastAction ? completeLabel : "Complete Rep")
                         .font(.title3.bold())
                     Text(repSubtitle)
                         .font(.subheadline)
                         .opacity(0.8)
                 }
             }
-            .foregroundStyle(durationSeconds != nil && timerState != .expired ? AnyShapeStyle(.primary) : AnyShapeStyle(Color.white))
+            .foregroundStyle(timerState == .counting ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color.white))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 36)
             .background(buttonColor)
@@ -104,7 +88,9 @@ struct ActionButton: View {
             let remaining = Int64(max(0, end.timeIntervalSinceNow))
             remainingSeconds = remaining
             if remaining == 0 {
-                timerState = .expired
+                timerState = .idle
+                endDate = nil
+                countRep()
             }
         }
     }
@@ -117,14 +103,11 @@ struct ActionButton: View {
                 remainingSeconds = duration
                 timerState = .counting
             case .counting:
-                // Flash red briefly, then count the rep
                 flashRed = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                     flashRed = false
                     countRep()
                 }
-            case .expired:
-                countRep()
             }
         } else {
             countRep()
@@ -136,7 +119,6 @@ struct ActionButton: View {
         if completedReps >= reps {
             onAdvance()
         }
-        // Reset timer state for next rep
         timerState = .idle
         endDate = nil
         remainingSeconds = durationSeconds ?? 0
