@@ -1,15 +1,6 @@
 import SwiftUI
 import SwiftData
 
-// Represents one card's position in the exercise sequence.
-private struct CardPosition: Identifiable, Equatable {
-    let exerciseId: UUID
-    let exerciseIndex: Int
-    let setIndex: Int
-
-    var id: String { "\(exerciseId)-\(setIndex)" }
-}
-
 struct ExerciseView: View {
     var exercises: [Exercise]
     var planName: String
@@ -18,65 +9,61 @@ struct ExerciseView: View {
     @State private var completedReps: [UUID: [Int]] = [:]
     @State private var isConfirmingExit: Bool = false
 
-    @State private var scrollPosition: ScrollPosition = ScrollPosition()
-    @State private var scrollFraction: CGFloat = 0
+    @State private var exerciseIndex: Int = 0
+    @State private var currentSetIndex: Int = 0
 
-    private static let completionId = "completion"
+    @State private var isCompleted: Bool = false
+    @State private var completionFadeIn: CGFloat = 0
 
-    // Flat list of all cards in order.
-    private var cards: [CardPosition] {
-        var result: [CardPosition] = []
-        for (ei, exercise) in exercises.enumerated() {
-            for si in 0..<exercise.sets {
-                result.append(CardPosition(exerciseId: exercise.id, exerciseIndex: ei, setIndex: si))
-            }
-        }
-        return result
+    // Entering animation
+    @State private var baseCardVisible: Bool = false
+    @State private var dealtCount: Int = 0
+
+    // Base card exit (on last set completion)
+    @State private var baseCardExitProgress: CGFloat = 0
+
+    // Exercise transition
+    @State private var isTransitioning: Bool = false
+    @State private var nextViewFadeIn: CGFloat = 0
+
+    // Flying card overlays
+    private struct FlyingCardInfo: Identifiable {
+        var id: UUID = UUID()
+        var setIndex: Int
+        var startFrame: CGRect
     }
+    @State private var flyingCards: [FlyingCardInfo] = []
 
-    private var isCompleted: Bool {
-        scrollPosition.viewID(type: String.self) == Self.completionId
-    }
+    @State private var progressBarFrame: CGRect = .zero
+    @State private var progressBarJiggle: CGFloat = 1
 
-    private var currentCard: CardPosition? {
-        guard let id = scrollPosition.viewID(type: String.self), id != Self.completionId else {
-            return cards.first
-        }
-        return cards.first(where: { $0.id == id }) ?? cards.first
-    }
-
-    private var completionProgress: CGFloat {
-        max(0, min(1, scrollFraction - CGFloat(cards.count - 1)))
+    private var currentExercise: Exercise? {
+        guard exerciseIndex < exercises.count else { return nil }
+        return exercises[exerciseIndex]
     }
 
     private var totalSets: Int {
         exercises.reduce(0) { $0 + $1.sets }
     }
 
-    private var completedSets: Int {
-        guard let current = currentCard else { return 0 }
-        let setsInPriorExercises = exercises.prefix(current.exerciseIndex).reduce(0) { $0 + $1.sets }
-        return setsInPriorExercises + current.setIndex
+    private var completedSetsCount: Int {
+        var count = 0
+        for (i, ex) in exercises.enumerated() {
+            if i < exerciseIndex {
+                count += ex.sets
+            } else if i == exerciseIndex {
+                count += currentSetIndex
+            }
+        }
+        return count
     }
 
-    // Build a binding for the rep count of a given card position.
-    private func repBinding(for card: CardPosition) -> Binding<Int> {
-        let exercise = exercises[card.exerciseIndex]
-        let id = exercise.id
-        let si = card.setIndex
+    private func repBinding(for index: Int) -> Binding<[Int]> {
+        guard index < exercises.count else { return .constant([]) }
+        let id = exercises[index].id
         return Binding(
-            get: {
-                let counts = self.completedReps[id, default: []]
-                return si < counts.count ? counts[si] : 0
-            },
-            set: { newValue in
-                var counts = self.completedReps[id, default: []]
-                while counts.count <= si {
-                    counts.append(0)
-                }
-                counts[si] = newValue
-                self.completedReps[id] = counts
-            }
+            get: { self.completedReps[id, default: []] },
+            set: { self.completedReps[id] = $0 }
         )
     }
 
@@ -86,78 +73,104 @@ struct ExerciseView: View {
                 Color(.systemGroupedBackground)
                     .ignoresSafeArea()
 
-                CompletionView(
-                    exercises: exercises,
-                    completedReps: completedReps,
-                    onDone: { mode = .planning }
-                )
-                .opacity(completionProgress)
-                .scaleEffect(0.8 + completionProgress * 0.2)
-
-                ScrollView(.horizontal) {
-                    LazyHStack(spacing: 0) {
-                        ForEach(Array(cards.enumerated()), id: \.element.id) { cardIndex, card in
-                            // exitProgress goes 0→1 as the card is swiped off to the left.
-                            let exitProgress = max(0, min(1, scrollFraction - CGFloat(cardIndex)))
-                            SetCard(
-                                exercise: exercises[card.exerciseIndex],
-                                setIndex: card.setIndex,
-                                completedReps: repBinding(for: card),
-                                onAdvance: { advanceCard() }
-                            )
-                            .padding(.horizontal, 16)
-                            .containerRelativeFrame([.horizontal])
-                            .id(card.id)
-                            .rotationEffect(.degrees(exitProgress * -8), anchor: .center)
-                            .offset(x: exitProgress * -40)
-                        }
-
-                        Spacer()
-                            .containerRelativeFrame([.horizontal])
-                            .id(Self.completionId)
-                    }
+                if isCompleted {
+                    CompletionView(
+                        exercises: exercises,
+                        completedReps: completedReps,
+                        onDone: { mode = .planning }
+                    )
+                    .opacity(completionFadeIn)
+                    .scaleEffect(0.85 + completionFadeIn * 0.15)
                 }
-                .scrollTargetBehavior(.paging)
-                .scrollPosition($scrollPosition)
-                .scrollIndicators(.hidden)
-                .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                    geometry.contentOffset.x / max(1, geometry.containerSize.width)
-                } action: { _, newValue in
-                    scrollFraction = newValue
+
+                if let exercise = currentExercise, !isCompleted {
+                    DeckView(
+                        exercise: exercise,
+                        currentSetIndex: currentSetIndex,
+                        dealtCount: dealtCount,
+                        completedReps: repBinding(for: exerciseIndex),
+                        onSetComplete: { setIndex, cardFrame in
+                            handleSetComplete(setIndex: setIndex, cardFrame: cardFrame)
+                        },
+                        onFrameChange: { _ in }
+                    )
+                    .padding(.horizontal, 16)
+                    .opacity(baseCardVisible ? max(0, 1 - baseCardExitProgress) : 0)
+                    .scaleEffect(
+                        baseCardVisible ? (1 + baseCardExitProgress * 0.15) : 0.92,
+                        anchor: .center
+                    )
+                }
+
+                // Next exercise or completion preview during transitions
+                if isTransitioning {
+                    nextViewPreview()
+                        .opacity(nextViewFadeIn)
+                        .scaleEffect(0.85 + nextViewFadeIn * 0.15, anchor: .center)
+                }
+
+                // Flying card overlays in screen coordinate space
+                GeometryReader { geo in
+                    let localOrigin = geo.frame(in: .global).origin
+                    ForEach(flyingCards) { info in
+                        if let exercise = currentExercise {
+                            FlyingCard(
+                                exercise: exercise,
+                                setIndex: info.setIndex,
+                                startFrame: CGRect(
+                                    origin: CGPoint(
+                                        x: info.startFrame.minX - localOrigin.x,
+                                        y: info.startFrame.minY - localOrigin.y
+                                    ),
+                                    size: info.startFrame.size
+                                ),
+                                targetFrame: CGRect(
+                                    origin: CGPoint(
+                                        x: progressBarFrame.minX - localOrigin.x,
+                                        y: progressBarFrame.minY - localOrigin.y
+                                    ),
+                                    size: progressBarFrame.size
+                                ),
+                                onComplete: {
+                                    flyingCards.removeAll { $0.id == info.id }
+                                    triggerProgressBarJiggle()
+                                }
+                            )
+                        }
+                    }
                 }
             }
             .safeAreaInset(edge: .top) {
-                ProgressView(value: Double(completedSets), total: Double(max(1, totalSets)))
-                    .progressViewStyle(.linear)
-                    .animation(.easeInOut(duration: 0.2), value: completedSets)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .opacity(1 - completionProgress)
+                GeometryReader { geo in
+                    ProgressView(value: Double(completedSetsCount), total: Double(max(1, totalSets)))
+                        .progressViewStyle(.linear)
+                        .scaleEffect(CGSize(width: 1, height: progressBarJiggle), anchor: .center)
+                        .animation(.spring(response: 0.2, dampingFraction: 0.3), value: progressBarJiggle)
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        .opacity(isCompleted ? 0 : 1)
+                        .preference(key: ProgressBarFrameKey.self, value: geo.frame(in: .global))
+                }
+                .frame(height: 36)
+                .onPreferenceChange(ProgressBarFrameKey.self) { progressBarFrame = $0 }
             }
             .navigationTitle(planName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if isCompleted {
-                        Button {
-                            mode = .planning
-                        } label: {
+                        Button { mode = .planning } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "chevron.left")
-                                Text("Return")
-                                    .font(.title3)
+                                Text("Return").font(.title3)
                             }
                             .padding(.horizontal, 4)
                         }
                     } else if isConfirmingExit {
-                        Button("End Exercises") {
-                            mode = .planning
-                        }
-                        .foregroundStyle(.red)
+                        Button("End Exercises") { mode = .planning }
+                            .foregroundStyle(.red)
                     } else {
-                        Button {
-                            isConfirmingExit = true
-                        } label: {
+                        Button { isConfirmingExit = true } label: {
                             Image(systemName: "chevron.left")
                         }
                     }
@@ -165,35 +178,140 @@ struct ExerciseView: View {
             }
         }
         .onAppear {
-            initializeCompletedReps()
-            if let first = cards.first {
-                scrollPosition = ScrollPosition(id: first.id)
-            }
+            initializeState()
         }
     }
 
-    private func initializeCompletedReps() {
+    @ViewBuilder
+    private func nextViewPreview() -> some View {
+        let nextIdx = exerciseIndex + 1
+        if nextIdx < exercises.count {
+            DeckView(
+                exercise: exercises[nextIdx],
+                currentSetIndex: 0,
+                dealtCount: exercises[nextIdx].sets,
+                completedReps: repBinding(for: nextIdx),
+                onSetComplete: { _, _ in },
+                onFrameChange: { _ in }
+            )
+            .padding(.horizontal, 16)
+        } else {
+            CompletionView(
+                exercises: exercises,
+                completedReps: completedReps,
+                onDone: { mode = .planning }
+            )
+        }
+    }
+
+    // MARK: - Setup
+
+    private func initializeState() {
         for exercise in exercises {
             completedReps[exercise.id] = Array(repeating: 0, count: exercise.sets)
         }
+        playEnteringAnimation()
     }
 
-    private func advanceCard() {
-        guard let current = currentCard,
-              let currentIdx = cards.firstIndex(of: current) else { return }
+    // MARK: - Entering Animation
 
-        let nextIdx = currentIdx + 1
-        if nextIdx < cards.count {
-            withAnimation(.easeInOut(duration: 0.4)) {
-                scrollPosition = ScrollPosition(id: cards[nextIdx].id)
-            }
-        } else {
-            withAnimation(.easeInOut(duration: 0.4)) {
-                scrollPosition = ScrollPosition(id: Self.completionId)
+    private func playEnteringAnimation() {
+        baseCardVisible = false
+        dealtCount = 0
+
+        withAnimation(.easeOut(duration: 0.35)) {
+            baseCardVisible = true
+        }
+
+        guard let exercise = currentExercise else { return }
+        for i in 0..<exercise.sets {
+            let delay = 0.35 + Double(i) * 0.07
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(delay))
+                withAnimation(.easeOut(duration: 0.18)) {
+                    dealtCount = i + 1
+                }
             }
         }
     }
+
+    // MARK: - Set Completion
+
+    private func handleSetComplete(setIndex: Int, cardFrame: CGRect) {
+        guard let exercise = currentExercise else { return }
+        let isLastSet = setIndex == exercise.sets - 1
+
+        flyingCards.append(FlyingCardInfo(setIndex: setIndex, startFrame: cardFrame))
+
+        if isLastSet {
+            // Base card begins fading out at 25% of the flight (~0.14s)
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(0.14))
+                withAnimation(.easeIn(duration: 0.25)) {
+                    baseCardExitProgress = 1
+                }
+            }
+            // At 75% of flight (~0.41s), trigger next exercise or completion
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(0.41))
+                advanceExercise()
+            }
+        } else {
+            // Advance to next set card after a short moment
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(0.1))
+                currentSetIndex = setIndex + 1
+            }
+        }
+    }
+
+    private func advanceExercise() {
+        let nextIdx = exerciseIndex + 1
+        isTransitioning = true
+
+        withAnimation(.easeOut(duration: 0.4)) {
+            nextViewFadeIn = 1
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(0.4))
+
+            if nextIdx >= exercises.count {
+                isCompleted = true
+                isTransitioning = false
+                nextViewFadeIn = 0
+                withAnimation(.easeOut(duration: 0.3)) {
+                    completionFadeIn = 1
+                }
+            } else {
+                exerciseIndex = nextIdx
+                currentSetIndex = 0
+                dealtCount = 0
+                baseCardExitProgress = 0
+                baseCardVisible = false
+                isTransitioning = false
+                nextViewFadeIn = 0
+                playEnteringAnimation()
+            }
+        }
+    }
+
+    private func triggerProgressBarJiggle() {
+        progressBarJiggle = 1.6
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.35)) {
+            progressBarJiggle = 1
+        }
+    }
 }
+
+private struct ProgressBarFrameKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
+    }
+}
+
+// MARK: - Previews
 
 #Preview("Exercise mode — first card") {
     @Previewable @State var mode: AppMode = .exercise
