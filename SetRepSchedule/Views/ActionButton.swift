@@ -10,6 +10,7 @@ struct ActionButton: View {
     private static let completeHaptic: SensoryFeedback = .success
 
     var isLastSet: Bool
+    var isActive: Bool = true
     var reps: Int
     var durationSeconds: Int64?
     @Binding var completedReps: Int
@@ -39,7 +40,9 @@ struct ActionButton: View {
     }
 
     private var buttonColor: Color {
-        if flashRed {
+        if !isActive {
+            Color(.systemGray5)
+        } else if flashRed {
             .red
         } else if timerState == .counting {
             Color(.systemBlue).opacity(0.15)

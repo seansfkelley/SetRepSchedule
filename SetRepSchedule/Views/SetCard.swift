@@ -1,11 +1,10 @@
 import SwiftUI
 import SwiftData
 
-// A small card showing the current set number and the action button.
-// This is stacked on top of the base card in the deck metaphor.
 struct SetCard: View {
     var exercise: Exercise
     var setIndex: Int
+    var isActive: Bool = true
     @Binding var completedReps: Int
     var onAdvance: () -> Void
 
@@ -26,6 +25,7 @@ struct SetCard: View {
 
                 ActionButton(
                     isLastSet: setIndex == exercise.sets - 1,
+                    isActive: isActive,
                     reps: exercise.reps,
                     durationSeconds: exercise.durationSeconds,
                     completedReps: $completedReps,
@@ -40,6 +40,17 @@ struct SetCard: View {
                 .shadow(color: .black.opacity(0.12), radius: 8, y: 3)
         )
     }
+}
+
+#Preview("Inactive") {
+    @Previewable @State var reps = 0
+    let container = previewContainer()
+    let exercise = previewExercise(in: container, name: "Squats", sets: 3, reps: 12)
+    SetCard(exercise: exercise, setIndex: 0, isActive: false, completedReps: $reps, onAdvance: {})
+        .padding()
+        .frame(maxHeight: 200)
+        .background(Color(.systemGroupedBackground))
+        .modelContainer(container)
 }
 
 #Preview("Mid-set") {

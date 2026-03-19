@@ -11,9 +11,6 @@ struct DeckView: View {
 
     @State private var dragOffset: CGSize = .zero
     @State private var dragVelocity: CGSize = .zero
-    @State private var lastDragLocation: CGPoint = .zero
-    @State private var lastDragTime: Date = .now
-    @State private var topCardFrame: CGRect = .zero
 
     private let commitDistanceThreshold: CGFloat = 80
     private let commitVelocityThreshold: CGFloat = 400
@@ -33,44 +30,81 @@ struct DeckView: View {
     }
 
     var body: some View {
-        let setIndex = currentSetIndex
+        let setsRemaining = exercise.sets - currentSetIndex
         BaseCard(exercise: exercise)
             .overlay(alignment: .bottom) {
-                SetCard(
-                    exercise: exercise,
-                    setIndex: setIndex,
-                    completedReps: repBinding(for: setIndex),
-                    onAdvance: { onSetComplete(setIndex, .zero) }
-                )
+                ZStack(alignment: .bottom) {
+                    ForEach((0..<setsRemaining).reversed(), id: \.self) { stackIndex in
+                        let setIndex = currentSetIndex + stackIndex
+                        let isTop = stackIndex == 0
+                        let isDealt = stackIndex >= setsRemaining - dealtCount
+
+                        SetCard(
+                            exercise: exercise,
+                            setIndex: setIndex,
+                            isActive: isTop && isDealt,
+                            completedReps: repBinding(for: setIndex),
+                            onAdvance: { onSetComplete(setIndex, .zero) }
+                        )
+                        .opacity(isDealt ? 1 : 0)
+                        .offset(y: isDealt ? 0 : -60)
+                        .offset(isTop ? dragOffset : .zero)
+                        .highPriorityGesture(isTop ? DragGesture()
+                            .onChanged { dragOffset = $0.translation }
+                            .onEnded { _ in
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                    dragOffset = .zero
+                                }
+                            } : nil
+                        )
+                    }
+                }
                 .padding(BaseCard.setCardInset)
-                .offset(dragOffset)
-                .gesture(
-                    DragGesture()
-                        .onChanged { dragOffset = $0.translation }
-                        .onEnded { _ in
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                dragOffset = .zero
-                            }
-                        }
-                )
             }
     }
 }
 
-#Preview("All cards dealt") {
+private struct DealAnimationPreview: View {
+    let exercise: Exercise
+    @State private var dealtCount = 0
+    @State private var completedReps = [0, 0, 0]
+
+    var body: some View {
+        VStack {
+            DeckView(
+                exercise: exercise,
+                currentSetIndex: 0,
+                dealtCount: dealtCount,
+                completedReps: $completedReps,
+                onSetComplete: { _, _ in },
+                onFrameChange: { _ in }
+            )
+            Button("Replay") { deal() }
+                .padding()
+        }
+        .background(Color(.systemGroupedBackground))
+        .onAppear { deal() }
+    }
+
+    private func deal() {
+        dealtCount = 0
+        for i in 0..<3 {
+            let delay = 0.35 + Double(i) * 0.15
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(delay))
+                withAnimation(.easeOut(duration: 0.35)) {
+                    dealtCount = i + 1
+                }
+            }
+        }
+    }
+}
+
+#Preview("Deal animation") {
     let container = previewContainer()
     let exercise = previewExercise(in: container, name: "Squats", sets: 3, reps: 12)
-    DeckView(
-        exercise: exercise,
-        currentSetIndex: 0,
-        dealtCount: 3,
-        completedReps: .constant([0, 0, 0]),
-        onSetComplete: { _, _ in },
-        onFrameChange: { _ in }
-    )
-    .padding()
-    .background(Color(.systemGroupedBackground))
-    .modelContainer(container)
+    DealAnimationPreview(exercise: exercise)
+        .modelContainer(container)
 }
 
 #Preview("Mid-deck (set 2 of 3 on top)") {
