@@ -11,6 +11,11 @@ struct SetCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            ProgressView(value: Double(completedReps), total: Double(max(1, exercise.reps)))
+                .progressViewStyle(.linear)
+                .scaleEffect(y: 2, anchor: .top)
+                .animation(.easeInOut(duration: 0.2), value: completedReps)
+
             Text("Set \(setIndex + 1) of \(exercise.sets)")
                 .font(.headline)
                 .foregroundStyle(.secondary)
@@ -51,10 +56,11 @@ struct SetCard: View {
 #Preview("Timed rep") {
     @Previewable @State var reps = 0
     let container = previewContainer()
-    let exercise = previewExercise(in: container, name: "Plank Hold", sets: 3, reps: 1, durationSeconds: 60)
+    let exercise = previewExercise(in: container, name: "Plank Hold", sets: 3, reps: 2, durationSeconds: 3)
     SetCard(exercise: exercise, setIndex: 0, completedReps: $reps, onAdvance: {})
         .padding()
         .frame(maxHeight: 200)
         .background(Color(.systemGroupedBackground))
         .modelContainer(container)
 }
+
