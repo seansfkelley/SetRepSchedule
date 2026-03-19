@@ -1,62 +1,46 @@
 import SwiftUI
 import SwiftData
 
+// Represents one card's position in the exercise sequence.
+private struct CardPosition: Identifiable, Equatable {
+    let id: UUID = UUID()
+    let exerciseIndex: Int
+    let setIndex: Int
+}
+
 struct ExerciseView: View {
     var exercises: [Exercise]
     var planName: String
     @Binding var mode: AppMode
 
-    @State private var exerciseIndex: Int = 0
-    @State private var setIndex: Int = 0
     @State private var completedReps: [UUID: [Int]] = [:]
     @State private var isConfirmingExit: Bool = false
-    @State private var cardOffset: CGFloat = 0
-    @State private var cardRotation: Double = 0
-    @State private var isAnimatingOut = false
     @State private var showCompletion = false
-    @State private var screenWidth: CGFloat = 400
 
-    // How far the last card has travelled as a fraction 0→1, used to drive the completion animation.
-    private var dismissProgress: Double {
-        guard showCompletion, screenWidth > 0 else { return 0 }
-        if isCompleted { return 1 }
-        return Double(min(1, -cardOffset / screenWidth))
+    // Paging scroll state
+    @State private var scrollPosition: ScrollPosition = ScrollPosition()
+    @State private var partialScrollOffsetFraction: CGFloat = 0
+
+    // Flat list of all cards in order.
+    private var cards: [CardPosition] {
+        var result: [CardPosition] = []
+        for (ei, exercise) in exercises.enumerated() {
+            for si in 0..<exercise.sets {
+                result.append(CardPosition(exerciseIndex: ei, setIndex: si))
+            }
+        }
+        return result
     }
 
-    private var completionScale: CGFloat { 0.85 + 0.15 * dismissProgress }
-    private var completionOpacity: Double { dismissProgress }
-
-    private var currentExercise: Exercise? {
-        guard exerciseIndex < exercises.count else { return nil }
-        return exercises[exerciseIndex]
+    private var currentCard: CardPosition? {
+        guard let id = scrollPosition.viewID(type: UUID.self) else {
+            return cards.first
+        }
+        return cards.first(where: { $0.id == id }) ?? cards.first
     }
 
     private var isCompleted: Bool {
-        exerciseIndex >= exercises.count
-    }
-
-    // Build a binding for the current rep count, backed by completedReps
-    private var currentRepBinding: Binding<Int> {
-        guard let exercise = currentExercise else {
-            return .constant(0)
-        }
-        let id = exercise.id
-        return Binding(
-            get: {
-                let counts = self.completedReps[id, default: []]
-                let idx = self.setIndex
-                return idx < counts.count ? counts[idx] : 0
-            },
-            set: { newValue in
-                var counts = self.completedReps[id, default: []]
-                // Ensure the array has enough slots up to setIndex
-                while counts.count <= self.setIndex {
-                    counts.append(0)
-                }
-                counts[self.setIndex] = newValue
-                self.completedReps[id] = counts
-            }
-        )
+        showCompletion
     }
 
     private var totalSets: Int {
@@ -64,22 +48,30 @@ struct ExerciseView: View {
     }
 
     private var completedSets: Int {
-        let setsInPriorExercises = exercises.prefix(exerciseIndex).reduce(0) { $0 + $1.sets }
-        return setsInPriorExercises + setIndex
+        guard let current = currentCard else { return 0 }
+        let setsInPriorExercises = exercises.prefix(current.exerciseIndex).reduce(0) { $0 + $1.sets }
+        return setsInPriorExercises + current.setIndex
     }
 
-    private var nextPosition: (exerciseIndex: Int, setIndex: Int)? {
-        guard let exercise = currentExercise else { return nil }
-        let nextSet = setIndex + 1
-        if nextSet < exercise.sets {
-            return (exerciseIndex, nextSet)
-        } else {
-            let nextExercise = exerciseIndex + 1
-            if nextExercise < exercises.count {
-                return (nextExercise, 0)
+    // Build a binding for the rep count of a given card position.
+    private func repBinding(for card: CardPosition) -> Binding<Int> {
+        let exercise = exercises[card.exerciseIndex]
+        let id = exercise.id
+        let si = card.setIndex
+        return Binding(
+            get: {
+                let counts = self.completedReps[id, default: []]
+                return si < counts.count ? counts[si] : 0
+            },
+            set: { newValue in
+                var counts = self.completedReps[id, default: []]
+                while counts.count <= si {
+                    counts.append(0)
+                }
+                counts[si] = newValue
+                self.completedReps[id] = counts
             }
-        }
-        return nil
+        )
     }
 
     var body: some View {
@@ -94,89 +86,52 @@ struct ExerciseView: View {
                         completedReps: completedReps,
                         onDone: { mode = .planning }
                     )
-                    .scaleEffect(completionScale)
-                    .opacity(completionOpacity)
+                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
                 }
 
-                if !isCompleted, let exercise = currentExercise {
+                if !showCompletion {
                     GeometryReader { geo in
-                        // Next card: slides in from the right proportionally to the swipe
-                        if cardOffset < 0, let next = nextPosition {
-                            let nextExercise = exercises[next.exerciseIndex]
-                            SetCard(
-                                exerciseName: nextExercise.name,
-                                setIndex: next.setIndex,
-                                totalSets: nextExercise.sets,
-                                reps: nextExercise.reps,
-                                durationSeconds: nextExercise.durationSeconds,
-                                notes: nextExercise.notes,
-                                imageData: nextExercise.imageData,
-                                completedReps: .constant(0),
-                                onAdvance: {}
-                            )
-                            .padding(.horizontal, 16)
-                            .frame(maxHeight: max(0, geo.size.height - 24))
-                            .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
-                            .offset(x: geo.size.width + cardOffset)
-                            .allowsHitTesting(false)
+                        ScrollView(.horizontal) {
+                            HStack(spacing: 0) {
+                                ForEach(cards) { card in
+                                    let exercise = exercises[card.exerciseIndex]
+                                    SetCard(
+                                        exerciseName: exercise.name,
+                                        setIndex: card.setIndex,
+                                        totalSets: exercise.sets,
+                                        reps: exercise.reps,
+                                        durationSeconds: exercise.durationSeconds,
+                                        notes: exercise.notes,
+                                        imageData: exercise.imageData,
+                                        completedReps: repBinding(for: card),
+                                        onAdvance: { advanceCard() }
+                                    )
+                                    .padding(.horizontal, 16)
+                                    .frame(width: geo.size.width, height: geo.size.height - 24)
+                                    .id(card.id)
+                                    // Fade/scale based on how far this card is from center
+                                    .scaleEffect(scaleForCard(card, containerWidth: geo.size.width))
+                                }
+                            }
                         }
-
-                        // Current card
-                        SetCard(
-                            exerciseName: exercise.name,
-                            setIndex: setIndex,
-                            totalSets: exercise.sets,
-                            reps: exercise.reps,
-                            durationSeconds: exercise.durationSeconds,
-                            notes: exercise.notes,
-                            imageData: exercise.imageData,
-                            completedReps: currentRepBinding,
-                            onAdvance: advanceCard
-                        )
-                        .padding(.horizontal, 16)
-                        .frame(maxHeight: max(0, geo.size.height - 24))
-                        .frame(width: geo.size.width, height: geo.size.height, alignment: .center)
-                        .offset(x: cardOffset)
-                        .rotationEffect(.degrees(cardRotation))
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    let translation = value.translation.width
-                                    if translation < 0 {
-                                        // Leftward drag: follows directly, gentle rotation
-                                        cardOffset = translation
-                                        cardRotation = translation / 35.0
-                                        if nextPosition == nil {
-                                            showCompletion = true
-                                        }
-                                    } else {
-                                        // Rightward drag: resist with no rotation
-                                        cardOffset = translation * 0.1
-                                        cardRotation = 0
-                                        if !isAnimatingOut {
-                                            showCompletion = false
-                                        }
-                                    }
+                        .scrollTargetBehavior(.paging)
+                        .scrollPosition($scrollPosition)
+                        .scrollIndicators(.hidden)
+                        .onScrollGeometryChange(
+                            for: CGFloat.self,
+                            of: { geometry in
+                                guard let currentId = scrollPosition.viewID(type: UUID.self),
+                                      let currentIdx = cards.firstIndex(where: { $0.id == currentId }) else {
+                                    return 0
                                 }
-                                .onEnded { value in
-                                    let translation = value.translation.width
-                                    let velocity = value.predictedEndTranslation.width
-
-                                    if translation < -100 || velocity < -300 {
-                                        // Commit the swipe
-                                        recordCurrentRepCount()
-                                        flyCardOffAndAdvance(screenWidth: geo.size.width)
-                                    } else {
-                                        // Spring back
-                                        withAnimation(.spring()) {
-                                            cardOffset = 0
-                                            cardRotation = 0
-                                        }
-                                        showCompletion = false
-                                    }
-                                }
+                                return (CGFloat(currentIdx) * geometry.containerSize.width - geometry.contentOffset.x) / geometry.containerSize.width
+                            },
+                            action: { _, new in
+                                partialScrollOffsetFraction = new
+                            }
                         )
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             .safeAreaInset(edge: .top) {
@@ -220,7 +175,26 @@ struct ExerciseView: View {
         }
         .onAppear {
             initializeCompletedReps()
+            if let first = cards.first {
+                scrollPosition = ScrollPosition(id: first.id)
+            }
         }
+    }
+
+    // Scale card slightly based on swipe progress (current card shrinks as it leaves).
+    private func scaleForCard(_ card: CardPosition, containerWidth: CGFloat) -> CGFloat {
+        guard let currentCard else { return 1 }
+        if card == currentCard {
+            // Shrink slightly as the user swipes this card away
+            return 1.0 - 0.04 * abs(partialScrollOffsetFraction)
+        }
+        // Next card grows in slightly as the current one departs
+        if let currentIdx = cards.firstIndex(of: currentCard),
+           let cardIdx = cards.firstIndex(of: card),
+           cardIdx == currentIdx + 1 {
+            return 0.96 + 0.04 * abs(partialScrollOffsetFraction)
+        }
+        return 1.0
     }
 
     private func initializeCompletedReps() {
@@ -229,53 +203,20 @@ struct ExerciseView: View {
         }
     }
 
-    private func recordCurrentRepCount() {
-        // Ensure the current set has an entry (even if 0 reps were completed)
-        guard let exercise = currentExercise else { return }
-        let id = exercise.id
-        var counts = completedReps[id, default: []]
-        while counts.count <= setIndex {
-            counts.append(0)
-        }
-        completedReps[id] = counts
-    }
-
     private func advanceCard() {
-        guard let exercise = currentExercise else { return }
-        recordCurrentRepCount()
-        flyCardOffAndAdvance(screenWidth: 400)
-        _ = exercise  // suppress unused warning
-    }
+        guard let current = currentCard,
+              let currentIdx = cards.firstIndex(of: current) else { return }
 
-    private func flyCardOffAndAdvance(screenWidth: CGFloat) {
-        guard !isAnimatingOut else { return }
-        isAnimatingOut = true
-
-        if nextPosition == nil {
-            showCompletion = true
-        }
-
-        withAnimation(.easeIn(duration: 0.3)) {
-            cardOffset = -screenWidth - 100
-            cardRotation = -8
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            advancePosition()
-            cardOffset = 0
-            cardRotation = 0
-            isAnimatingOut = false
-        }
-    }
-
-    private func advancePosition() {
-        guard let exercise = currentExercise else { return }
-        let nextSet = setIndex + 1
-        if nextSet < exercise.sets {
-            setIndex = nextSet
+        let nextIdx = currentIdx + 1
+        if nextIdx < cards.count {
+            withAnimation(.easeInOut(duration: 0.4)) {
+                scrollPosition = ScrollPosition(id: cards[nextIdx].id)
+            }
         } else {
-            exerciseIndex += 1
-            setIndex = 0
+            // Past the last card — show completion
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showCompletion = true
+            }
         }
     }
 }
