@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		21F440332F6B099700065B35 /* DESIGN.md in Resources */ = {isa = PBXBuildFile; fileRef = 21F440322F6B099500065B35 /* DESIGN.md */; };
+		21F445F22F6C6B9100065B35 /* CARDS.md in Resources */ = {isa = PBXBuildFile; fileRef = 21F445F12F6C6B9100065B35 /* CARDS.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,6 +33,7 @@
 		21F440152F6B05DB00065B35 /* SetRepScheduleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SetRepScheduleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		21F4401F2F6B05DB00065B35 /* SetRepScheduleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SetRepScheduleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		21F440322F6B099500065B35 /* DESIGN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DESIGN.md; sourceTree = "<group>"; };
+		21F445F12F6C6B9100065B35 /* CARDS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CARDS.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -81,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				21F440322F6B099500065B35 /* DESIGN.md */,
+				21F445F12F6C6B9100065B35 /* CARDS.md */,
 				21F4400A2F6B05DB00065B35 /* SetRepSchedule */,
 				21F440182F6B05DB00065B35 /* SetRepScheduleTests */,
 				21F440222F6B05DB00065B35 /* SetRepScheduleUITests */,
@@ -218,6 +221,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				21F445F22F6C6B9100065B35 /* CARDS.md in Resources */,
 				21F440332F6B099700065B35 /* DESIGN.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
