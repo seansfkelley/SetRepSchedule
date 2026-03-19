@@ -20,6 +20,7 @@ struct ExerciseView: View {
     @State private var showCompletion = false
 
     @State private var scrollPosition: ScrollPosition = ScrollPosition()
+    @State private var scrollFraction: CGFloat = 0
 
     // Flat list of all cards in order.
     private var cards: [CardPosition] {
@@ -80,10 +81,21 @@ struct ExerciseView: View {
                 Color(.systemGroupedBackground)
                     .ignoresSafeArea()
 
+                let completionProgress = max(0, min(1, scrollFraction - CGFloat(cards.count - 1)))
+                CompletionView(
+                    exercises: exercises,
+                    completedReps: completedReps,
+                    onDone: { mode = .planning }
+                )
+                .opacity(completionProgress)
+                .scaleEffect(0.8 + completionProgress * 0.2)
+
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
-                        ForEach(cards) { card in
+                        ForEach(Array(cards.enumerated()), id: \.element.id) { cardIndex, card in
                             let exercise = exercises[card.exerciseIndex]
+                            // exitProgress goes 0→1 as the card is swiped off to the left.
+                            let exitProgress = max(0, min(1, scrollFraction - CGFloat(cardIndex)))
                             SetCard(
                                 exerciseName: exercise.name,
                                 setIndex: card.setIndex,
@@ -98,19 +110,22 @@ struct ExerciseView: View {
                             .padding(.horizontal, 16)
                             .containerRelativeFrame([.horizontal])
                             .id(card.id)
+                            .rotationEffect(.degrees(exitProgress * -8), anchor: .center)
+                            .offset(x: exitProgress * -40)
                         }
 
-                        CompletionView(
-                            exercises: exercises,
-                            completedReps: completedReps,
-                            onDone: { mode = .planning }
-                        )
-                        .containerRelativeFrame([.horizontal])
+                        Spacer()
+                            .containerRelativeFrame([.horizontal])
                     }
                 }
                 .scrollTargetBehavior(.paging)
                 .scrollPosition($scrollPosition)
                 .scrollIndicators(.hidden)
+                .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                    geometry.contentOffset.x / max(1, geometry.containerSize.width)
+                } action: { _, newValue in
+                    scrollFraction = newValue
+                }
             }
             .safeAreaInset(edge: .top) {
                 if !showCompletion {
