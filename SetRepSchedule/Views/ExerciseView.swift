@@ -80,41 +80,37 @@ struct ExerciseView: View {
                 Color(.systemGroupedBackground)
                     .ignoresSafeArea()
 
-                if showCompletion {
-                    CompletionView(
-                        exercises: exercises,
-                        completedReps: completedReps,
-                        onDone: { mode = .planning }
-                    )
-                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
-                }
-
-                if !showCompletion {
-                    ScrollView(.horizontal) {
-                        LazyHStack(spacing: 0) {
-                            ForEach(cards) { card in
-                                let exercise = exercises[card.exerciseIndex]
-                                SetCard(
-                                    exerciseName: exercise.name,
-                                    setIndex: card.setIndex,
-                                    totalSets: exercise.sets,
-                                    reps: exercise.reps,
-                                    durationSeconds: exercise.durationSeconds,
-                                    notes: exercise.notes,
-                                    imageData: exercise.imageData,
-                                    completedReps: repBinding(for: card),
-                                    onAdvance: { advanceCard() }
-                                )
-                                .padding(.horizontal, 16)
-                                .containerRelativeFrame([.horizontal])
-                                .id(card.id)
-                            }
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 0) {
+                        ForEach(cards) { card in
+                            let exercise = exercises[card.exerciseIndex]
+                            SetCard(
+                                exerciseName: exercise.name,
+                                setIndex: card.setIndex,
+                                totalSets: exercise.sets,
+                                reps: exercise.reps,
+                                durationSeconds: exercise.durationSeconds,
+                                notes: exercise.notes,
+                                imageData: exercise.imageData,
+                                completedReps: repBinding(for: card),
+                                onAdvance: { advanceCard() }
+                            )
+                            .padding(.horizontal, 16)
+                            .containerRelativeFrame([.horizontal])
+                            .id(card.id)
                         }
+
+                        CompletionView(
+                            exercises: exercises,
+                            completedReps: completedReps,
+                            onDone: { mode = .planning }
+                        )
+                        .containerRelativeFrame([.horizontal])
                     }
-                    .scrollTargetBehavior(.paging)
-                    .scrollPosition($scrollPosition)
-                    .scrollIndicators(.hidden)
                 }
+                .scrollTargetBehavior(.paging)
+                .scrollPosition($scrollPosition)
+                .scrollIndicators(.hidden)
             }
             .safeAreaInset(edge: .top) {
                 if !showCompletion {
