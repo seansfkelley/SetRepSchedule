@@ -4,13 +4,13 @@ import SwiftData
 struct DeckView: View {
     var exercise: Exercise
     var currentSetIndex: Int
-    var dealtCount: Int
     @Binding var completedReps: [Int]
     var onSetComplete: (_ setIndex: Int, _ cardFrame: CGRect) -> Void
     var onFrameChange: (CGRect) -> Void
 
     @State private var dragOffset: CGSize = .zero
     @State private var topCardFrame: CGRect = .zero
+    @State private var dealtCount: Int = 0
 
     private let commitThreshold: CGFloat = 400
 
@@ -74,42 +74,41 @@ struct DeckView: View {
                 }
                 .padding(BaseCard.setCardInset)
             }
+        .task(id: exercise.id) {
+            dealtCount = 0
+            for i in 0..<exercise.sets {
+                try? await Task.sleep(for: .seconds(Double(i) * 0.05))
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeOut(duration: 0.2)) {
+                    dealtCount = i + 1
+                }
+            }
+        }
     }
 }
 
 private struct DealAnimationPreview: View {
     let exercise: Exercise
-    @State private var dealtCount = 0
     @State private var completedReps = [0, 0, 0]
+    @State private var replayToken = 0
 
     var body: some View {
         VStack {
             DeckView(
                 exercise: exercise,
                 currentSetIndex: 0,
-                dealtCount: dealtCount,
                 completedReps: $completedReps,
                 onSetComplete: { _, _ in },
                 onFrameChange: { _ in }
             )
-            Button("Replay") { deal() }
-                .padding()
+            .id(replayToken)
+            Button("Replay") {
+                completedReps = [0, 0, 0]
+                replayToken += 1
+            }
+            .padding()
         }
         .background(Color(.systemGroupedBackground))
-        .onAppear { deal() }
-    }
-
-    private func deal() {
-        dealtCount = 0
-        for i in 0..<3 {
-            let delay = 0.35 + Double(i) * 0.15
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(delay))
-                withAnimation(.easeOut(duration: 0.35)) {
-                    dealtCount = i + 1
-                }
-            }
-        }
     }
 }
 
@@ -126,7 +125,6 @@ private struct DealAnimationPreview: View {
     DeckView(
         exercise: exercise,
         currentSetIndex: 1,
-        dealtCount: 2,
         completedReps: .constant([15, 0, 0]),
         onSetComplete: { _, _ in },
         onFrameChange: { _ in }
@@ -142,7 +140,6 @@ private struct DealAnimationPreview: View {
     DeckView(
         exercise: exercise,
         currentSetIndex: 2,
-        dealtCount: 1,
         completedReps: .constant([10, 10, 0]),
         onSetComplete: { _, _ in },
         onFrameChange: { _ in }
@@ -159,7 +156,6 @@ private struct DealAnimationPreview: View {
     DeckView(
         exercise: exercise,
         currentSetIndex: 0,
-        dealtCount: 3,
         completedReps: .constant([0, 0, 0]),
         onSetComplete: { _, _ in },
         onFrameChange: { _ in }

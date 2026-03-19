@@ -17,7 +17,6 @@ struct ExerciseView: View {
 
     // Entering animation
     @State private var baseCardVisible: Bool = false
-    @State private var dealtCount: Int = 0
 
     // Base card exit (on last set completion)
     @State private var baseCardExitProgress: CGFloat = 0
@@ -87,7 +86,6 @@ struct ExerciseView: View {
                     DeckView(
                         exercise: exercise,
                         currentSetIndex: currentSetIndex,
-                        dealtCount: dealtCount,
                         completedReps: repBinding(for: exerciseIndex),
                         onSetComplete: { setIndex, cardFrame in
                             handleSetComplete(setIndex: setIndex, cardFrame: cardFrame)
@@ -189,7 +187,6 @@ struct ExerciseView: View {
             DeckView(
                 exercise: exercises[nextIdx],
                 currentSetIndex: 0,
-                dealtCount: exercises[nextIdx].sets,
                 completedReps: repBinding(for: nextIdx),
                 onSetComplete: { _, _ in },
                 onFrameChange: { _ in }
@@ -217,21 +214,9 @@ struct ExerciseView: View {
 
     private func playEnteringAnimation() {
         baseCardVisible = false
-        dealtCount = 0
 
         withAnimation(.easeOut(duration: 0.35)) {
             baseCardVisible = true
-        }
-
-        guard let exercise = currentExercise else { return }
-        for i in 0..<exercise.sets {
-            let delay = 0.35 + Double(i) * 0.07
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(delay))
-                withAnimation(.easeOut(duration: 0.18)) {
-                    dealtCount = i + 1
-                }
-            }
         }
     }
 
@@ -286,7 +271,6 @@ struct ExerciseView: View {
             } else {
                 exerciseIndex = nextIdx
                 currentSetIndex = 0
-                dealtCount = 0
                 baseCardExitProgress = 0
                 baseCardVisible = false
                 isTransitioning = false
