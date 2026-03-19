@@ -2,13 +2,13 @@ import SwiftUI
 import SwiftData
 
 // The base card of an exercise deck. Shows the exercise name, image, and notes
-// in the upper portion, with a dotted placeholder zone in the lower third where
-// set cards are stacked.
+// in the upper portion, with a dotted placeholder zone at the bottom sized to
+// exactly fit a SetCard (measured by rendering an invisible one).
 struct BaseCard: View {
     var exercise: Exercise
 
-    // The bottom fraction of the card reserved for set cards.
-    static let setZoneFraction: CGFloat = 0.33
+    private let fadeLength: CGFloat = 20
+    private let setZoneInset: CGFloat = 12
 
     private let encouragements: [String] = [
         "Keep it up!", "You've got this!", "Stay steady.", "Nice and easy.",
@@ -27,61 +27,78 @@ struct BaseCard: View {
     }
 
     var body: some View {
-        GeometryReader { geo in
-            VStack(spacing: 0) {
-                // Upper portion: exercise content
-                VStack(spacing: 12) {
-                    if !exercise.name.isEmpty {
-                        Text(exercise.name)
-                            .font(.largeTitle.bold())
-                            .multilineTextAlignment(.center)
-                    }
+        VStack(spacing: 0) {
+            // Title: always visible at top, outside the scroll area
+            if !exercise.name.isEmpty {
+                Text(exercise.name)
+                    .font(.largeTitle.bold())
+                    .multilineTextAlignment(.center)
+                    .padding(.top, fadeLength * 3 / 2)
+                    .padding(.horizontal, setZoneInset)
+                    .padding(.bottom, fadeLength / 2)
+            }
 
-                    if exercise.imageData == nil && exercise.notes.isEmpty {
-                        Spacer()
-                        Text(currentPhrase)
-                            .font(.title2)
-                            .foregroundStyle(.tertiary)
-                            .multilineTextAlignment(.center)
-                            .id(phraseIndex)
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .top).combined(with: .opacity),
-                                removal: .move(edge: .bottom).combined(with: .opacity)
-                            ))
-                        Spacer()
-                    } else {
-                        ScrollView {
-                            VStack(spacing: 12) {
-                                if let data = exercise.imageData, let uiImage = UIImage(data: data) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        .padding(.horizontal, 16)
-                                }
-                                if !exercise.notes.isEmpty {
-                                    Text(exercise.notes)
-                                        .font(.body)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding(.horizontal, 16)
-                                }
+            // Body area: centers if content fits, scrolls if it doesn't
+            GeometryReader { geo in
+                ScrollView {
+                    VStack(spacing: 12) {
+                        if exercise.imageData == nil && exercise.notes.isEmpty {
+                            Text(currentPhrase)
+                                .font(.title2)
+                                .foregroundStyle(.tertiary)
+                                .multilineTextAlignment(.center)
+                                .id(phraseIndex)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .top).combined(with: .opacity),
+                                    removal: .move(edge: .bottom).combined(with: .opacity)
+                                ))
+                        } else {
+                            if let data = exercise.imageData, let uiImage = UIImage(data: data) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
-                            .padding(.vertical, 8)
+                            if !exercise.notes.isEmpty {
+                                Text(exercise.notes)
+                                    .font(.body)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
                         }
                     }
+                    .padding(.horizontal, setZoneInset)
+                    .padding(.vertical, fadeLength)
+                    .frame(minWidth: geo.size.width, minHeight: geo.size.height)
                 }
-                .frame(height: geo.size.height * (1 - BaseCard.setZoneFraction))
-                .padding(.top, 16)
-                .padding(.horizontal, 16)
+                .scrollBounceBehavior(.basedOnSize)
+                .mask {
+                    VStack(spacing: 0) {
+                        LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                            .frame(height: fadeLength)
+                        Rectangle()
+                        LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                            .frame(height: fadeLength)
+                    }
+                }
+                .animation(.easeInOut(duration: 0.4), value: phraseIndex)
+            }
 
-                // Lower third: dotted placeholder zone for set cards
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
-                        .foregroundStyle(.tertiary)
-                        .padding(8)
-                }
-                .frame(height: geo.size.height * BaseCard.setZoneFraction)
+            // Dotted zone: sized by an invisible SetCard placed underneath the border
+            ZStack {
+                // Invisible SetCard defines the height
+                SetCard(
+                    exercise: exercise,
+                    setIndex: 0,
+                    completedReps: .constant(0),
+                    onAdvance: {}
+                )
+                .hidden()
+
+                // Dotted border drawn on top
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                    .foregroundStyle(.tertiary)
+                    .padding(setZoneInset)
             }
         }
         .background(

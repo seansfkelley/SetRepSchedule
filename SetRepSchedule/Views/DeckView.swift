@@ -17,6 +17,9 @@ struct DeckView: View {
     // Reports this deck's global frame upward
     var onFrameChange: (CGRect) -> Void
 
+    // Must match BaseCard's setZoneInset so set cards land on the dotted outline
+    private let setZoneInset: CGFloat = 8
+
     @State private var dragOffset: CGSize = .zero
     @State private var lastDragLocation: CGPoint = .zero
     @State private var lastDragTime: Date = .now
@@ -41,63 +44,60 @@ struct DeckView: View {
     }
 
     var body: some View {
-        GeometryReader { geo in
-            let setZoneHeight = geo.size.height * BaseCard.setZoneFraction
-            let setZoneY = geo.size.height * (1 - BaseCard.setZoneFraction)
-            let setZoneInset: CGFloat = 16
-
+        // Use a ZStack so BaseCard fills the frame and set cards stack on top of it,
+        // aligned to the bottom where the dotted zone lives.
+        ZStack(alignment: .bottom) {
             BaseCard(exercise: exercise)
-                .frame(width: geo.size.width, height: geo.size.height)
 
-            let setCardFrame = CGRect(
-                x: setZoneInset,
-                y: setZoneY,
-                width: geo.size.width - setZoneInset * 2,
-                height: setZoneHeight
-            )
-
-            // Render set cards from bottom of stack to top.
-            // stackIndex 0 = topmost visible card (currentSetIndex).
-            // dealtCount controls how many cards from the top have dealt in.
             let setsRemaining = exercise.sets - currentSetIndex
             ForEach(0..<setsRemaining, id: \.self) { stackIndex in
                 let setIndex = currentSetIndex + stackIndex
                 let isTop = stackIndex == 0
                 let isDealt = stackIndex < dealtCount
-                let dealOffset: CGFloat = isDealt ? 0 : -30  // undealt cards start above
+                let dealOffset: CGFloat = isDealt ? 0 : -30
 
-                SetCard(
-                    exercise: exercise,
-                    setIndex: setIndex,
-                    completedReps: repBinding(for: setIndex),
-                    onAdvance: {
-                        let globalFrame = CGRect(
-                            origin: CGPoint(
-                                x: geo.frame(in: .global).minX + setCardFrame.minX,
-                                y: geo.frame(in: .global).minY + setCardFrame.minY
-                            ),
-                            size: setCardFrame.size
+                // Wrap in GeometryReader only for the top card to capture its global frame
+                if isTop {
+                    GeometryReader { geo in
+                        SetCard(
+                            exercise: exercise,
+                            setIndex: setIndex,
+                            completedReps: repBinding(for: setIndex),
+                            onAdvance: {
+                                onSetComplete(setIndex, geo.frame(in: .global))
+                            }
                         )
-                        onSetComplete(setIndex, globalFrame)
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .offset(dragOffset)
+                        .gesture(dragGesture(setIndex: setIndex, cardGeo: geo))
                     }
-                )
-                .frame(width: setCardFrame.width, height: setCardFrame.height)
-                .position(x: setCardFrame.midX, y: setCardFrame.midY)
-                .offset(
-                    x: isTop ? dragOffset.width : 0,
-                    y: (isTop ? dragOffset.height : 0) + dealOffset
-                )
-                .opacity(isDealt ? 1 : 0)
-                .gesture(isTop ? dragGesture(setIndex: setIndex, setCardFrame: setCardFrame, geoFrame: geo.frame(in: .global)) : nil)
+                    .padding(setZoneInset)
+                    .offset(y: dealOffset)
+                    .opacity(isDealt ? 1 : 0)
+                } else {
+                    SetCard(
+                        exercise: exercise,
+                        setIndex: setIndex,
+                        completedReps: repBinding(for: setIndex),
+                        onAdvance: {}
+                    )
+                    .padding(setZoneInset)
+                    .offset(y: dealOffset)
+                    .opacity(isDealt ? 1 : 0)
+                }
             }
-
-            Color.clear
-                .preference(key: DeckFrameKey.self, value: geo.frame(in: .global))
+        }
+        .background {
+            // Report the full deck's global frame
+            GeometryReader { geo in
+                Color.clear
+                    .preference(key: DeckFrameKey.self, value: geo.frame(in: .global))
+            }
         }
         .onPreferenceChange(DeckFrameKey.self) { onFrameChange($0) }
     }
 
-    private func dragGesture(setIndex: Int, setCardFrame: CGRect, geoFrame: CGRect) -> some Gesture {
+    private func dragGesture(setIndex: Int, cardGeo: GeometryProxy) -> some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 dragOffset = value.translation
@@ -119,15 +119,14 @@ struct DeckView: View {
                 let shouldCommit = dist > commitDistanceThreshold || speed > commitVelocityThreshold
 
                 if shouldCommit {
-                    let globalFrame = CGRect(
-                        origin: CGPoint(
-                            x: geoFrame.minX + setCardFrame.minX + value.translation.width,
-                            y: geoFrame.minY + setCardFrame.minY + value.translation.height
-                        ),
-                        size: setCardFrame.size
+                    let frame = cardGeo.frame(in: .global)
+                    let offsetFrame = CGRect(
+                        origin: CGPoint(x: frame.minX + value.translation.width,
+                                        y: frame.minY + value.translation.height),
+                        size: frame.size
                     )
                     dragOffset = .zero
-                    onSetComplete(setIndex, globalFrame)
+                    onSetComplete(setIndex, offsetFrame)
                 } else {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) {
                         dragOffset = .zero
