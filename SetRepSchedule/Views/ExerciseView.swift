@@ -97,17 +97,11 @@ struct ExerciseView: View {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
                         ForEach(Array(cards.enumerated()), id: \.element.id) { cardIndex, card in
-                            let exercise = exercises[card.exerciseIndex]
                             // exitProgress goes 0→1 as the card is swiped off to the left.
                             let exitProgress = max(0, min(1, scrollFraction - CGFloat(cardIndex)))
                             SetCard(
-                                exerciseName: exercise.name,
+                                exercise: exercises[card.exerciseIndex],
                                 setIndex: card.setIndex,
-                                totalSets: exercise.sets,
-                                reps: exercise.reps,
-                                durationSeconds: exercise.durationSeconds,
-                                notes: exercise.notes,
-                                imageData: exercise.imageData,
                                 completedReps: repBinding(for: card),
                                 onAdvance: { advanceCard() }
                             )
