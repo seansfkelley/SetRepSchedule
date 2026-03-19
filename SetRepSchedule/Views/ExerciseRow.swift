@@ -48,6 +48,7 @@ struct ExerciseRow: View {
                 HStack(spacing: 8) {
                     SetsRepsButton(exercise: exercise)
                     DurationButton(exercise: exercise)
+                    NotesButton(exercise: exercise)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

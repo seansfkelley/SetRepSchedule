@@ -27,6 +27,7 @@ func previewExercise(
     sets: Int = 3,
     reps: Int = 12,
     durationSeconds: Int64? = nil,
+    notes: String = "",
     imageData: Data? = nil
 ) -> Exercise {
     let exercise = Exercise(
@@ -36,6 +37,7 @@ func previewExercise(
         sets: sets,
         reps: reps,
         durationSeconds: durationSeconds,
+        notes: notes,
         imageData: imageData
     )
     container.mainContext.insert(exercise)

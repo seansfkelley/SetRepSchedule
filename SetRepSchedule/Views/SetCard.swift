@@ -6,6 +6,7 @@ struct SetCard: View {
     var totalSets: Int
     var reps: Int
     var durationSeconds: Int64?
+    var notes: String
     var imageData: Data?
     @Binding var completedReps: Int
     var onAdvance: () -> Void
@@ -25,16 +26,26 @@ struct SetCard: View {
             .padding(.horizontal)
             .padding(.top)
 
-            if let data = imageData, let uiImage = UIImage(data: data) {
-                Spacer()
-
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .padding(.horizontal, 32)
-
-                Spacer()
+            if imageData != nil || !notes.isEmpty {
+                ScrollView {
+                    VStack(spacing: 12) {
+                        if let data = imageData, let uiImage = UIImage(data: data) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(minWidth: 120, minHeight: 120)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .padding(.horizontal, 32)
+                        }
+                        if !notes.isEmpty {
+                            Text(notes)
+                                .font(.body)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 32)
+                        }
+                    }
+                    .padding(.vertical, 12)
+                }
             } else {
                 Spacer()
                     .frame(height: 16)
@@ -68,7 +79,7 @@ struct SetCard: View {
     }
 }
 
-#Preview("No timer — mid-set") {
+#Preview("Minimal, mid-set") {
     @Previewable @State var reps = 3
     SetCard(
         exerciseName: "Squats",
@@ -76,6 +87,7 @@ struct SetCard: View {
         totalSets: 3,
         reps: 12,
         durationSeconds: nil,
+        notes: "",
         imageData: nil,
         completedReps: $reps,
         onAdvance: {}
@@ -84,7 +96,7 @@ struct SetCard: View {
     .background(Color(.systemGroupedBackground))
 }
 
-#Preview("With timer — idle") {
+#Preview("Timed rep") {
     @Previewable @State var reps = 0
     SetCard(
         exerciseName: "Plank Hold",
@@ -92,6 +104,7 @@ struct SetCard: View {
         totalSets: 3,
         reps: 1,
         durationSeconds: 60,
+        notes: "",
         imageData: nil,
         completedReps: $reps,
         onAdvance: {}
@@ -100,7 +113,7 @@ struct SetCard: View {
     .background(Color(.systemGroupedBackground))
 }
 
-#Preview("Last set — last rep") {
+#Preview("Last set, last rep") {
     @Previewable @State var reps = 11
     SetCard(
         exerciseName: "Lunges",
@@ -108,7 +121,60 @@ struct SetCard: View {
         totalSets: 3,
         reps: 12,
         durationSeconds: nil,
+        notes: "",
         imageData: nil,
+        completedReps: $reps,
+        onAdvance: {}
+    )
+    .padding()
+    .background(Color(.systemGroupedBackground))
+}
+
+#Preview("Image only") {
+    @Previewable @State var reps = 0
+    let imageData = previewImageData(color: .systemBlue)
+    SetCard(
+        exerciseName: "Squats",
+        setIndex: 0,
+        totalSets: 3,
+        reps: 12,
+        durationSeconds: nil,
+        notes: "",
+        imageData: imageData,
+        completedReps: $reps,
+        onAdvance: {}
+    )
+    .padding()
+    .background(Color(.systemGroupedBackground))
+}
+#Preview("Notes only") {
+    @Previewable @State var reps = 0
+    SetCard(
+        exerciseName: "Squats",
+        setIndex: 0,
+        totalSets: 3,
+        reps: 12,
+        durationSeconds: nil,
+        notes: "Keep your chest up and knees tracking over your toes. Go to parallel or below. Breathe in on the way down, out on the way up.",
+        imageData: nil,
+        completedReps: $reps,
+        onAdvance: {}
+    )
+    .padding()
+    .background(Color(.systemGroupedBackground))
+}
+
+#Preview("With notes and image") {
+    @Previewable @State var reps = 0
+    let imageData = previewImageData(color: .systemBlue)
+    SetCard(
+        exerciseName: "Squats",
+        setIndex: 0,
+        totalSets: 3,
+        reps: 12,
+        durationSeconds: nil,
+        notes: "Keep your chest up and knees tracking over your toes. Go to parallel or below. Breathe in on the way down, out on the way up.\nKeep your chest up and knees tracking over your toes. Go to parallel or below. Breathe in on the way down, out on the way up.\nKeep your chest up and knees tracking over your toes. Go to parallel or below. Breathe in on the way down, out on the way up.",
+        imageData: imageData,
         completedReps: $reps,
         onAdvance: {}
     )

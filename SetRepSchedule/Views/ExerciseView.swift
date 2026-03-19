@@ -109,6 +109,7 @@ struct ExerciseView: View {
                                 totalSets: nextExercise.sets,
                                 reps: nextExercise.reps,
                                 durationSeconds: nextExercise.durationSeconds,
+                                notes: nextExercise.notes,
                                 imageData: nextExercise.imageData,
                                 completedReps: .constant(0),
                                 onAdvance: {}
@@ -127,6 +128,7 @@ struct ExerciseView: View {
                             totalSets: exercise.sets,
                             reps: exercise.reps,
                             durationSeconds: exercise.durationSeconds,
+                            notes: exercise.notes,
                             imageData: exercise.imageData,
                             completedReps: currentRepBinding,
                             onAdvance: advanceCard
