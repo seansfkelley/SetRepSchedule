@@ -87,10 +87,10 @@ struct ExerciseView: View {
                         exercise: exercise,
                         currentSetIndex: currentSetIndex,
                         completedReps: repBinding(for: exerciseIndex),
+                        progressViewTarget: progressBarFrame,
                         onSetComplete: { setIndex, cardFrame in
                             handleSetComplete(setIndex: setIndex, cardFrame: cardFrame)
-                        },
-                        onFrameChange: { _ in }
+                        }
                     )
                     .padding(.horizontal, 16)
                     .opacity(baseCardVisible ? max(0, 1 - baseCardExitProgress) : 0)
@@ -188,8 +188,8 @@ struct ExerciseView: View {
                 exercise: exercises[nextIdx],
                 currentSetIndex: 0,
                 completedReps: repBinding(for: nextIdx),
-                onSetComplete: { _, _ in },
-                onFrameChange: { _ in }
+                progressViewTarget: progressBarFrame,
+                onSetComplete: { _, _ in }
             )
             .padding(.horizontal, 16)
         } else {

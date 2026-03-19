@@ -5,8 +5,8 @@ struct DeckView: View {
     var exercise: Exercise
     var currentSetIndex: Int
     @Binding var completedReps: [Int]
+    var progressViewTarget: CGRect
     var onSetComplete: (_ setIndex: Int, _ cardFrame: CGRect) -> Void
-    var onFrameChange: (CGRect) -> Void
 
     @State private var dragOffset: CGSize = .zero
     @State private var topCardFrame: CGRect = .zero
@@ -91,15 +91,20 @@ private struct DealAnimationPreview: View {
     let exercise: Exercise
     @State private var completedReps = [0, 0, 0]
     @State private var replayToken = 0
+    @State private var progressViewTarget: CGRect = .zero
 
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
+            ProgressView(value: 0.4)
+                .progressViewStyle(.linear)
+                .padding()
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { progressViewTarget = $0 }
             DeckView(
                 exercise: exercise,
                 currentSetIndex: 0,
                 completedReps: $completedReps,
-                onSetComplete: { _, _ in },
-                onFrameChange: { _ in }
+                progressViewTarget: progressViewTarget,
+                onSetComplete: { _, _ in }
             )
             .id(replayToken)
             Button("Replay") {
@@ -119,48 +124,49 @@ private struct DealAnimationPreview: View {
         .modelContainer(container)
 }
 
+private struct StaticDeckPreview: View {
+    let exercise: Exercise
+    let currentSetIndex: Int
+    let completedReps: [Int]
+    @State private var progressViewTarget: CGRect = .zero
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ProgressView(value: Double(currentSetIndex), total: Double(max(1, exercise.sets)))
+                .progressViewStyle(.linear)
+                .padding()
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { progressViewTarget = $0 }
+            DeckView(
+                exercise: exercise,
+                currentSetIndex: currentSetIndex,
+                completedReps: .constant(completedReps),
+                progressViewTarget: progressViewTarget,
+                onSetComplete: { _, _ in }
+            )
+            .padding()
+        }
+        .background(Color(.systemGroupedBackground))
+    }
+}
+
 #Preview("Mid-deck (set 2 of 3 on top)") {
     let container = previewContainer()
     let exercise = previewExercise(in: container, name: "Push-ups", sets: 3, reps: 15)
-    DeckView(
-        exercise: exercise,
-        currentSetIndex: 1,
-        completedReps: .constant([15, 0, 0]),
-        onSetComplete: { _, _ in },
-        onFrameChange: { _ in }
-    )
-    .padding()
-    .background(Color(.systemGroupedBackground))
-    .modelContainer(container)
+    StaticDeckPreview(exercise: exercise, currentSetIndex: 1, completedReps: [15, 0, 0])
+        .modelContainer(container)
 }
 
 #Preview("Last set") {
     let container = previewContainer()
     let exercise = previewExercise(in: container, name: "Lunges", sets: 3, reps: 10)
-    DeckView(
-        exercise: exercise,
-        currentSetIndex: 2,
-        completedReps: .constant([10, 10, 0]),
-        onSetComplete: { _, _ in },
-        onFrameChange: { _ in }
-    )
-    .padding()
-    .background(Color(.systemGroupedBackground))
-    .modelContainer(container)
+    StaticDeckPreview(exercise: exercise, currentSetIndex: 2, completedReps: [10, 10, 0])
+        .modelContainer(container)
 }
 
 #Preview("With image") {
     let container = previewContainer()
     let exercise = previewExercise(in: container, name: "Squats", sets: 3, reps: 12,
                                    imageData: previewImageData(color: .systemBlue))
-    DeckView(
-        exercise: exercise,
-        currentSetIndex: 0,
-        completedReps: .constant([0, 0, 0]),
-        onSetComplete: { _, _ in },
-        onFrameChange: { _ in }
-    )
-    .padding()
-    .background(Color(.systemGroupedBackground))
-    .modelContainer(container)
+    StaticDeckPreview(exercise: exercise, currentSetIndex: 0, completedReps: [0, 0, 0])
+        .modelContainer(container)
 }
