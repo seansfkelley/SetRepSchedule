@@ -49,35 +49,28 @@ struct ActionButton: View {
         Button {
             handleTap()
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: 8) {
                 if let duration = durationSeconds {
                     switch timerState {
                     case .idle:
                         let m = Int(duration / 60)
                         let s = Int(duration % 60)
                         Text("Start (\(m):\(String(format: "%02d", s)))")
-                            .font(.title3.bold())
+                            .font(.title.bold())
                         Text(repSubtitle)
-                            .font(.subheadline)
-                            .opacity(0.8)
                     case .counting:
                         Text(String(format: "%d:%02d", Int(remainingSeconds / 60), Int(remainingSeconds % 60)))
                             .font(.system(size: 48, weight: .bold).monospacedDigit())
                         Text(repSubtitle)
-                            .font(.subheadline)
-                            .opacity(0.8)
                     }
                 } else {
                     Text(isLastAction ? completeLabel : "Complete Rep")
-                        .font(.title3.bold())
+                        .font(.title.bold())
                     Text(repSubtitle)
-                        .font(.subheadline)
-                        .opacity(0.8)
                 }
             }
             .foregroundStyle(timerState == .counting ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color.white))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 36)
+            .frame(maxWidth: .infinity, minHeight: 150)
             .background(buttonColor)
             .animation(.easeInOut(duration: 0.15), value: flashRed)
             .animation(.easeInOut(duration: 0.2), value: timerState)

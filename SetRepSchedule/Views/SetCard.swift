@@ -40,12 +40,13 @@ struct SetCard: View {
                     .frame(height: 16)
             }
 
-            VStack(spacing: 0) {
+            VStack(spacing: 8) {
                 ProgressView(value: Double(completedReps), total: Double(max(1, reps)))
                     .progressViewStyle(.linear)
                     .animation(.easeInOut(duration: 0.2), value: completedReps)
-                    .frame(height: 4)
-                    .padding(.horizontal, -16)
+                    .scaleEffect(y: 2, anchor: .center)
+                    .frame(height: 20)
+                    .padding(.horizontal)
 
                 ActionButton(
                     exerciseName: exerciseName,
@@ -59,11 +60,11 @@ struct SetCard: View {
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.systemBackground))
                 .shadow(radius: 8)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
