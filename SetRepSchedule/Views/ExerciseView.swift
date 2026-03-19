@@ -91,7 +91,7 @@ struct ExerciseView: View {
 
                 if !showCompletion {
                     ScrollView(.horizontal) {
-                        HStack(spacing: 0) {
+                        LazyHStack(spacing: 0) {
                             ForEach(cards) { card in
                                 let exercise = exercises[card.exerciseIndex]
                                 SetCard(

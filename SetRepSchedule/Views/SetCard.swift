@@ -38,6 +38,7 @@ struct SetCard: View {
 
     @State private var shuffled: [String] = encouragements.shuffled()
     @State private var phraseIndex: Int = 0
+    @State private var phraseTimer: Timer?
 
     private var currentPhrase: String { shuffled[phraseIndex] }
 
@@ -131,11 +132,15 @@ struct SetCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .onAppear {
             guard imageData == nil && notes.isEmpty else { return }
-            Timer.scheduledTimer(withTimeInterval: phraseInterval, repeats: true) { _ in
+            phraseTimer = Timer.scheduledTimer(withTimeInterval: phraseInterval, repeats: true) { _ in
                 withAnimation(.easeInOut(duration: 0.4)) {
                     phraseIndex = (phraseIndex + 1) % shuffled.count
                 }
             }
+        }
+        .onDisappear {
+            phraseTimer?.invalidate()
+            phraseTimer = nil
         }
     }
 }

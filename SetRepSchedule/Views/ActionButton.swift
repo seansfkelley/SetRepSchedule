@@ -1,5 +1,4 @@
 import SwiftUI
-import Combine
 
 enum TimerState {
     case waitingToStart, counting, waitingToConfirmCompletion
@@ -19,13 +18,11 @@ struct ActionButton: View {
     var onAdvance: () -> Void
 
     @State private var timerState: TimerState = .waitingToStart
-    @State private var endDate: Date?
     @State private var remainingSeconds: Int64 = 0
     @State private var flashRed = false
     @State private var hapticTrigger: Int = 0
     @State private var hapticFeedback: SensoryFeedback = .impact
-
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State private var timerTask: Task<Void, Never>?
 
     private var isLastSet: Bool { setIndex == totalSets - 1 }
     private var isLastRep: Bool { completedReps == reps - 1 }
@@ -91,20 +88,8 @@ struct ActionButton: View {
         }
         .buttonStyle(.plain)
         .sensoryFeedback(trigger: hapticTrigger) { _, _ in hapticFeedback }
-        .onReceive(timer) { _ in
-            guard timerState == .counting, let end = endDate else { return }
-            let remaining = Int64(max(0, end.timeIntervalSinceNow))
-            remainingSeconds = remaining
-            if remaining == 0 {
-                endDate = nil
-                if isLastRep {
-                    timerState = .waitingToConfirmCompletion
-                } else {
-                    timerState = .waitingToStart
-                    triggerHaptic(Self.repHaptic)
-                }
-                completedReps += 1
-            }
+        .onDisappear {
+            timerTask?.cancel()
         }
     }
 
@@ -113,27 +98,53 @@ struct ActionButton: View {
         hapticTrigger += 1
     }
 
-    private func handleTap() {
-        if let duration = durationSeconds {
-            switch timerState {
-            case .waitingToStart:
-                endDate = Date.now.addingTimeInterval(Double(duration))
-                remainingSeconds = duration
-                timerState = .counting
-                triggerHaptic(Self.repHaptic)
-            case .counting:
-                triggerHaptic(Self.abortHaptic)
-                flashRed = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                    flashRed = false
-                    endDate = nil
+    private func startCountdown(duration: Int64) {
+        remainingSeconds = duration
+        timerState = .counting
+        triggerHaptic(Self.repHaptic)
+        timerTask = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { break }
+                remainingSeconds -= 1
+                if remainingSeconds == 0 {
                     if isLastRep {
                         timerState = .waitingToConfirmCompletion
                     } else {
                         timerState = .waitingToStart
+                        triggerHaptic(Self.repHaptic)
                     }
                     completedReps += 1
+                    break
                 }
+            }
+        }
+    }
+
+    private func abortCountdown() {
+        timerTask?.cancel()
+        timerTask = nil
+        triggerHaptic(Self.abortHaptic)
+        flashRed = true
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(0.25))
+            flashRed = false
+            if isLastRep {
+                timerState = .waitingToConfirmCompletion
+            } else {
+                timerState = .waitingToStart
+            }
+            completedReps += 1
+        }
+    }
+
+    private func handleTap() {
+        if let duration = durationSeconds {
+            switch timerState {
+            case .waitingToStart:
+                startCountdown(duration: duration)
+            case .counting:
+                abortCountdown()
             case .waitingToConfirmCompletion:
                 triggerHaptic(Self.completeHaptic)
                 onAdvance()
@@ -183,7 +194,7 @@ struct ActionButton: View {
         setIndex: 0,
         totalSets: 3,
         reps: 1,
-        durationSeconds: 60,
+        durationSeconds: 5,
         completedReps: $reps,
         onAdvance: {}
     )
