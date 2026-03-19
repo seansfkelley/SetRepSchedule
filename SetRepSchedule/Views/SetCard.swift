@@ -1,5 +1,28 @@
 import SwiftUI
 
+private let encouragements: [String] = [
+    "Keep it up!",
+    "You've got this!",
+    "Stay steady.",
+    "Nice and easy.",
+    "Looking good!",
+    "One rep at a time.",
+    "You're doing great.",
+    "Keep going!",
+    "Almost there!",
+    "Eyes on the goal.",
+    "Great work!",
+    "Breathe and focus.",
+    "Every rep counts.",
+    "You're making progress.",
+    "Nice work!",
+    "Slow and steady.",
+    "Trust the process.",
+    "Take it step by step.",
+    "Stronger every day.",
+    "You've got this!",
+]
+
 struct SetCard: View {
     var exerciseName: String
     var setIndex: Int
@@ -10,6 +33,13 @@ struct SetCard: View {
     var imageData: Data?
     @Binding var completedReps: Int
     var onAdvance: () -> Void
+
+    @State private var shuffled: [String] = encouragements.shuffled()
+    @State private var phraseIndex: Int = 0
+
+    private var currentPhrase: String { shuffled[phraseIndex] }
+
+    private let phraseInterval: TimeInterval = 4
 
     var body: some View {
         VStack(spacing: 0) {
@@ -31,9 +61,15 @@ struct SetCard: View {
                 ScrollView {
                     VStack(spacing: 12) {
                         if imageData == nil && notes.isEmpty {
-                            Text("Keep it up!")
+                            Text(currentPhrase)
                                 .font(.title)
                                 .foregroundStyle(.tertiary)
+                                .multilineTextAlignment(.center)
+                                .id(phraseIndex)
+                                .transition(.asymmetric(
+                                    insertion: .move(edge: .top).combined(with: .opacity),
+                                    removal: .move(edge: .bottom).combined(with: .opacity)
+                                ))
                         } else {
                             if let data = imageData, let uiImage = UIImage(data: data) {
                                 Image(uiImage: uiImage)
@@ -51,6 +87,7 @@ struct SetCard: View {
                             }
                         }
                     }
+                    .animation(.easeInOut(duration: 0.4), value: phraseIndex)
                     .padding(.vertical, fadeLength)
                     .frame(minWidth: geo.size.width, minHeight: geo.size.height)
                 }
@@ -94,6 +131,14 @@ struct SetCard: View {
                 .shadow(radius: 8)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .onAppear {
+            guard imageData == nil && notes.isEmpty else { return }
+            Timer.scheduledTimer(withTimeInterval: phraseInterval, repeats: true) { _ in
+                withAnimation(.easeInOut(duration: 0.4)) {
+                    phraseIndex = (phraseIndex + 1) % shuffled.count
+                }
+            }
+        }
     }
 }
 
