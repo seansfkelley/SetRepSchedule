@@ -9,9 +9,7 @@ struct ActionButton: View {
     private static let abortHaptic: SensoryFeedback = .warning
     private static let completeHaptic: SensoryFeedback = .success
 
-    var exerciseName: String
-    var setIndex: Int
-    var totalSets: Int
+    var isLastSet: Bool
     var reps: Int
     var durationSeconds: Int64?
     @Binding var completedReps: Int
@@ -24,20 +22,20 @@ struct ActionButton: View {
     @State private var hapticFeedback: SensoryFeedback = .impact
     @State private var timerTask: Task<Void, Never>?
 
-    private var isLastSet: Bool { setIndex == totalSets - 1 }
-    private var isLastRep: Bool { completedReps == reps - 1 }
-    private var isLastAction: Bool { isLastRep && isLastSet }
-
-    private var completeLabel: String {
-        if isLastSet {
-            return "Complete Exercise"
-        } else {
-            return "Complete Set \(setIndex + 1) of \(totalSets)"
-        }
+    private var isLastRepOfSet: Bool {
+        completedReps == reps - 1
     }
 
-    private var repSubtitle: String {
-        "Rep \(completedReps + 1) of \(reps)"
+    private var lastRepLabel: String {
+        isLastSet ? "Complete Exercise" : "Complete Set"
+    }
+
+    private var repSubtitle: Text {
+        if isLastRepOfSet {
+            Text("^[\(reps) Rep](inflect: true)")
+        } else {
+            Text("Rep \(completedReps + 1) of \(reps)")
+        }
     }
 
     private var buttonColor: Color {
@@ -45,7 +43,7 @@ struct ActionButton: View {
             .red
         } else if timerState == .counting {
             Color(.systemBlue).opacity(0.15)
-        } else if timerState == .waitingToConfirmCompletion || (isLastAction && durationSeconds == nil) {
+        } else if timerState == .waitingToConfirmCompletion || (isLastRepOfSet && durationSeconds == nil) {
             .green
         } else {
             .blue
@@ -64,19 +62,19 @@ struct ActionButton: View {
                         let s = Int(duration % 60)
                         Text("Start (\(m):\(String(format: "%02d", s)))")
                             .font(.title.bold())
-                        Text(repSubtitle)
+                        repSubtitle
                     case .counting:
                         Text(String(format: "%d:%02d", Int(remainingSeconds / 60), Int(remainingSeconds % 60)))
                             .font(.system(size: 48, weight: .bold).monospacedDigit())
-                        Text(repSubtitle)
+                        repSubtitle
                     case .waitingToConfirmCompletion:
-                        Text(completeLabel)
+                        Text(lastRepLabel)
                             .font(.title.bold())
                     }
                 } else {
-                    Text(isLastAction ? completeLabel : "Complete Rep")
+                    Text(isLastRepOfSet ? lastRepLabel : "Complete Rep")
                         .font(.title.bold())
-                    Text(repSubtitle)
+                    repSubtitle
                 }
             }
             .foregroundStyle(timerState == .counting ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color.white))
@@ -108,7 +106,7 @@ struct ActionButton: View {
                 guard !Task.isCancelled else { break }
                 remainingSeconds -= 1
                 if remainingSeconds == 0 {
-                    if isLastRep {
+                    if isLastRepOfSet {
                         timerState = .waitingToConfirmCompletion
                     } else {
                         timerState = .waitingToStart
@@ -129,7 +127,7 @@ struct ActionButton: View {
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(0.25))
             flashRed = false
-            if isLastRep {
+            if isLastRepOfSet {
                 timerState = .waitingToConfirmCompletion
             } else {
                 timerState = .waitingToStart
@@ -161,12 +159,10 @@ struct ActionButton: View {
     }
 }
 
-#Preview("No timer — mid-set") {
+#Preview("No timer — mid-set mid-exercise") {
     @Previewable @State var reps = 4
     ActionButton(
-        exerciseName: "Squats",
-        setIndex: 1,
-        totalSets: 3,
+        isLastSet: false,
         reps: 12,
         durationSeconds: nil,
         completedReps: $reps,
@@ -177,9 +173,7 @@ struct ActionButton: View {
 #Preview("No timer — last rep of last set") {
     @Previewable @State var reps = 11
     ActionButton(
-        exerciseName: "Push-ups",
-        setIndex: 2,
-        totalSets: 3,
+        isLastSet: true,
         reps: 12,
         durationSeconds: nil,
         completedReps: $reps,
@@ -190,11 +184,9 @@ struct ActionButton: View {
 #Preview("Timer — idle") {
     @Previewable @State var reps = 0
     ActionButton(
-        exerciseName: "Plank Hold",
-        setIndex: 0,
-        totalSets: 3,
+        isLastSet: false,
         reps: 1,
-        durationSeconds: 5,
+        durationSeconds: 3,
         completedReps: $reps,
         onAdvance: {}
     )

@@ -17,15 +17,14 @@ struct SetCard: View {
                 .animation(.easeInOut(duration: 0.2), value: completedReps)
 
             Text("Set \(setIndex + 1) of \(exercise.sets)")
-                .font(.headline)
+                .font(.title2)
+                .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
                 .padding(.top, 12)
                 .padding(.bottom, 8)
 
             ActionButton(
-                exerciseName: exercise.name,
-                setIndex: setIndex,
-                totalSets: exercise.sets,
+                isLastSet: setIndex == exercise.sets - 1,
                 reps: exercise.reps,
                 durationSeconds: exercise.durationSeconds,
                 completedReps: $completedReps,
