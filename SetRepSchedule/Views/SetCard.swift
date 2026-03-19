@@ -26,29 +26,47 @@ struct SetCard: View {
             .padding(.horizontal)
             .padding(.top)
 
-            if imageData != nil || !notes.isEmpty {
+            GeometryReader { geo in
+                let fadeLength: CGFloat = 24
                 ScrollView {
                     VStack(spacing: 12) {
-                        if let data = imageData, let uiImage = UIImage(data: data) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(minWidth: 120, minHeight: 120)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .padding(.horizontal, 32)
-                        }
-                        if !notes.isEmpty {
-                            Text(notes)
-                                .font(.body)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 32)
+                        if imageData == nil && notes.isEmpty {
+                            Text("Keep it up!")
+                                .font(.title)
+                                .foregroundStyle(.tertiary)
+                        } else {
+                            if let data = imageData, let uiImage = UIImage(data: data) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(minWidth: 120, minHeight: 120)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .padding(.horizontal, 32)
+                            }
+                            if !notes.isEmpty {
+                                Text(notes)
+                                    .font(.body)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 32)
+                            }
                         }
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, fadeLength)
+                    .frame(minWidth: geo.size.width, minHeight: geo.size.height)
                 }
-            } else {
-                Spacer()
-                    .frame(height: 16)
+                .scrollBounceBehavior(.basedOnSize)
+                .mask {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .black, location: fadeLength / geo.size.height),
+                            .init(color: .black, location: 1 - fadeLength / geo.size.height),
+                            .init(color: .clear, location: 1),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
             }
 
             VStack(spacing: 8) {
