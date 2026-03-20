@@ -6,7 +6,6 @@ struct ExerciseRow: View {
     @Bindable var exercise: Exercise
     var focusedExerciseId: FocusState<UUID?>.Binding
     @State private var showInvalidPopover = false
-    @State private var jiggle = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -37,11 +36,6 @@ struct ExerciseRow: View {
                                 exercise.name = trimmed
                             }
                         }
-                        .rotationEffect(.degrees(jiggle ? 2 : 0))
-                        .animation(
-                            jiggle ? .easeInOut(duration: 0.08).repeatCount(4, autoreverses: true) : .default,
-                            value: jiggle
-                        )
                 }
                 .padding(.leading, 4)
 
@@ -54,13 +48,6 @@ struct ExerciseRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             ImageButton(exercise: exercise)
-        }
-    }
-
-    func triggerJiggle() {
-        jiggle = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            jiggle = false
         }
     }
 }
