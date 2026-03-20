@@ -5,10 +5,6 @@ enum TimerState {
 }
 
 struct ActionButton: View {
-    private static let repHaptic: SensoryFeedback = .impact
-    private static let abortHaptic: SensoryFeedback = .warning
-    private static let completeHaptic: SensoryFeedback = .success
-
     var isLastSet: Bool
     var isActive: Bool = true
     var reps: Int
@@ -21,8 +17,6 @@ struct ActionButton: View {
     @State private var timerState: TimerState = .waitingToStart
     @State private var remainingSeconds: Int64 = 0
     @State private var flashRed = false
-    @State private var hapticTrigger: Int = 0
-    @State private var hapticFeedback: SensoryFeedback = .impact
     @State private var timerTask: Task<Void, Never>?
 
     private var isLastRepOfSet: Bool {
@@ -90,7 +84,6 @@ struct ActionButton: View {
             .animation(.easeInOut(duration: 0.2), value: timerState)
         }
         .buttonStyle(.plain)
-        .sensoryFeedback(trigger: hapticTrigger) { _, _ in hapticFeedback }
         .onDisappear {
             timerTask?.cancel()
         }
@@ -101,15 +94,10 @@ struct ActionButton: View {
         Chime.play()
     }
 
-    private func triggerHaptic(_ feedback: SensoryFeedback) {
-        hapticFeedback = feedback
-        hapticTrigger += 1
-    }
-
     private func startCountdown(duration: Int64) {
         remainingSeconds = duration
         timerState = .counting
-        triggerHaptic(Self.repHaptic)
+        HapticEngine.playFeedback(for: .startTimer)
         timerTask = Task { @MainActor in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
@@ -121,7 +109,7 @@ struct ActionButton: View {
                         timerState = .waitingToConfirmCompletion
                     } else {
                         timerState = .waitingToStart
-                        triggerHaptic(Self.repHaptic)
+                        HapticEngine.playFeedback(for: .completeTimer)
                     }
                     completedReps += 1
                     break
@@ -133,7 +121,7 @@ struct ActionButton: View {
     private func abortCountdown() {
         timerTask?.cancel()
         timerTask = nil
-        triggerHaptic(Self.abortHaptic)
+        HapticEngine.playFeedback(for: .abortTimer)
         flashRed = true
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(0.25))
@@ -155,16 +143,16 @@ struct ActionButton: View {
             case .counting:
                 abortCountdown()
             case .waitingToConfirmCompletion:
-                triggerHaptic(Self.completeHaptic)
+                HapticEngine.playFeedback(for: .completeSet)
                 onAdvance()
             }
         } else {
             completedReps += 1
             if completedReps >= reps {
-                triggerHaptic(Self.completeHaptic)
+                HapticEngine.playFeedback(for: .completeSet)
                 onAdvance()
             } else {
-                triggerHaptic(Self.repHaptic)
+                HapticEngine.playFeedback(for: .completeRep)
             }
         }
     }
