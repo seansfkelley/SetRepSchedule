@@ -89,28 +89,22 @@ struct ActionButton: View {
         }
     }
 
-    private func playChime() {
-        guard !isMuted else { return }
-        Chime.play()
-    }
-
     private func startCountdown(duration: Int64) {
         remainingSeconds = duration
         timerState = .counting
-        HapticEngine.playFeedback(for: .startTimer)
+        FeedbackEngine.playFeedback(for: .startTimer, isMuted: isMuted)
         timerTask = Task { @MainActor in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { break }
                 remainingSeconds -= 1
                 if remainingSeconds == 0 {
-                    playChime()
                     if isLastRepOfSet {
                         timerState = .waitingToConfirmCompletion
                     } else {
                         timerState = .waitingToStart
-                        HapticEngine.playFeedback(for: .completeTimer)
                     }
+                    FeedbackEngine.playFeedback(for: .completeTimer(isLastRepOfSet), isMuted: isMuted)
                     completedReps += 1
                     break
                 }
@@ -121,7 +115,7 @@ struct ActionButton: View {
     private func abortCountdown() {
         timerTask?.cancel()
         timerTask = nil
-        HapticEngine.playFeedback(for: .abortTimer)
+        FeedbackEngine.playFeedback(for: .abortTimer, isMuted: isMuted)
         flashRed = true
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(0.25))
@@ -143,16 +137,16 @@ struct ActionButton: View {
             case .counting:
                 abortCountdown()
             case .waitingToConfirmCompletion:
-                HapticEngine.playFeedback(for: .completeSet)
+                FeedbackEngine.playFeedback(for: .rep(true), isMuted: isMuted)
                 onAdvance()
             }
         } else {
             completedReps += 1
             if completedReps >= reps {
-                HapticEngine.playFeedback(for: .completeSet)
+                FeedbackEngine.playFeedback(for: .rep(true), isMuted: isMuted)
                 onAdvance()
             } else {
-                HapticEngine.playFeedback(for: .completeRep)
+                FeedbackEngine.playFeedback(for: .rep(false), isMuted: isMuted)
             }
         }
     }
