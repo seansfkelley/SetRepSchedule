@@ -63,6 +63,7 @@ private struct DeckCard: View {
     var onSetWillComplete: () -> Void
     var onSetComplete: () -> Void
 
+    @Environment(\.scenePhase) private var scenePhase
     @State private var state = FlyingCardState()
 
     var body: some View {
@@ -72,11 +73,11 @@ private struct DeckCard: View {
             isActive: isTop,
             completedReps: $completedReps,
             onAdvance: {
-                state.fly(onWillComplete: onSetWillComplete) { onSetComplete() }
+                state.autocompleteAnimation(onWillComplete: onSetWillComplete) { onSetComplete() }
             }
         )
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
-            guard !state.isFlying else { return }
+            guard !state.isCompletingAnimation else { return }
             state.cardFrame = frame.offsetBy(dx: -state.offset.width, dy: -state.offset.height)
         }
         .scaleEffect(state.scale)
@@ -85,19 +86,26 @@ private struct DeckCard: View {
         .highPriorityGesture(
             DragGesture()
                 .onChanged {
-                    if isTop && !state.isFlying {
+                    if isTop && !state.isCompletingAnimation {
                         state.onDragChanged($0.translation)
                     }
                 }
                 .onEnded {
-                    if isTop && !state.isFlying {
-                        state.onDragEnded($0, onWillComplete: onSetWillComplete) { onSetComplete() }
+                    if isTop && !state.isCompletingAnimation {
+                        state.onDragEnded($0, onWillComplete: onSetWillComplete) {
+                            onSetComplete()
+                        }
                     }
                 },
-            isEnabled: isTop && !state.isFlying
+            isEnabled: isTop && !state.isCompletingAnimation
         )
         .onChange(of: progressViewTarget, initial: true) {
             state.targetFrame = progressViewTarget
+        }
+        .onChange(of: scenePhase) {
+            if scenePhase != .active {
+                state.cancelDrag()
+            }
         }
     }
 }
@@ -108,41 +116,56 @@ private class FlyingCardState {
     var scale: CGFloat = 1
     var opacity: Double = 1
 
-    var isFlying: Bool = false
+    private(set) var isCompletingAnimation: Bool = false
 
     var cardFrame: CGRect = .zero
     var targetFrame: CGRect = .zero
     let commitThreshold: CGFloat = 400
 
+    func cancelDrag() {
+        guard offset != .zero && !isCompletingAnimation else { return }
+
+        isCompletingAnimation = true
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+            offset = .zero
+        } completion: {
+            self.isCompletingAnimation = false
+        }
+    }
+
     func onDragChanged(_ translation: CGSize) {
+        guard !isCompletingAnimation else { return }
+
         offset = translation
     }
 
     func onDragEnded(_ value: DragGesture.Value, onWillComplete: @escaping () -> Void, onComplete: @escaping () -> Void) {
+        guard !isCompletingAnimation else { return }
+
         let predicted = value.predictedEndTranslation
         let dist = hypot(predicted.width, predicted.height)
         if dist > commitThreshold {
-            fly(velocity: value.velocity, onWillComplete: onWillComplete, onComplete: onComplete)
+            autocompleteAnimation(withVelocity: value.velocity, onWillComplete: onWillComplete, onComplete: onComplete)
         } else {
+            isCompletingAnimation = true
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                 offset = .zero
+            } completion: {
+                self.isCompletingAnimation = false
             }
         }
     }
 
-    func fly(onWillComplete: @escaping () -> Void = {}, onComplete: @escaping () -> Void) {
-        fly(velocity: .zero, onWillComplete: onWillComplete, onComplete: onComplete)
-    }
+    func autocompleteAnimation(withVelocity velocity: CGSize = .zero, onWillComplete: @escaping () -> Void, onComplete: @escaping () -> Void) {
+        guard !isCompletingAnimation else { return }
 
-    private func fly(velocity: CGSize = .zero, onWillComplete: @escaping () -> Void, onComplete: @escaping () -> Void) {
-        guard !isFlying else { return }
+        isCompletingAnimation = true
 
         let dest = CGSize(
             width: targetFrame.midX - cardFrame.midX,
             height: targetFrame.midY - cardFrame.midY,
         )
 
-        isFlying = true
 
         withAnimation(
             // I'd like to use initialVelocity but the figures I get from the drag gesture are
@@ -155,6 +178,7 @@ private class FlyingCardState {
             scale = 0.1
             opacity = 0
         } completion: { @MainActor in
+            self.isCompletingAnimation = false
             onComplete()
         }
 
