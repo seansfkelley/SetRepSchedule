@@ -30,6 +30,7 @@ struct ActionButton: View {
 
     private var repSubtitle: Text {
         Text("Rep \(completedReps + 1) of \(reps)")
+            .font(.title3)
     }
 
     private var buttonColor: Color {
@@ -59,22 +60,22 @@ struct ActionButton: View {
                         let m = Int(duration / 60)
                         let s = Int(duration % 60)
                         Text("Start (\(m):\(String(format: "%02d", s)))")
-                            .font(.title.bold())
+                            .font(.largeTitle.bold())
                         repSubtitle
                     case .counting:
                         Text(String(format: "%d:%02d", Int(remainingSeconds / 60), Int(remainingSeconds % 60)))
-                            .font(.system(size: 48, weight: .bold).monospacedDigit())
+                            .font(.largeTitle.bold().monospacedDigit())
                         repSubtitle
                     }
                 } else {
                     Text(isLastRepOfSet ? lastRepLabel : "Complete Rep")
-                        .font(.title.bold())
+                        .font(.largeTitle.bold())
                     repSubtitle
                 }
             }
             .foregroundStyle(timerState == .counting ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color.white))
             .contentTransition(.identity)
-            .frame(maxWidth: .infinity, minHeight: 150)
+            .frame(maxWidth: .infinity, minHeight: 250)
             .background(buttonColor)
             .animation(.easeInOut(duration: 0.15), value: flashRed)
             .animation(.easeInOut(duration: 0.2), value: timerState)

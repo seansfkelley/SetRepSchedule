@@ -13,31 +13,44 @@ struct DeckView: View {
 
     var body: some View {
         BaseCard(exercise: exercise)
-            .overlay(alignment: .bottom) {
-                ZStack(alignment: .bottom) {
-                    ForEach((0..<exercise.sets).reversed(), id: \.self) { cardIndex in
-                        let isTop = cardIndex == setIndex
-                        let isDealt = cardIndex >= (exercise.sets - dealtCount)
-                        DeckCard(
-                            exercise: exercise,
-                            setIndex: cardIndex,
-                            isTop: isTop,
-                            progressViewTarget: progressViewTarget,
-                            completedReps: isTop ? $completedReps : .constant(0),
-                            onSetWillComplete: onSetWillComplete,
-                            onSetComplete: {
-                                onSetComplete(completedReps)
-                                completedReps = 0
+            .overlay(alignment: .top) {
+                VStack(spacing: 0) {
+                    // Invisible title spacer matching BaseCard's title layout
+                    if !exercise.name.isEmpty {
+                        Text(exercise.name)
+                            .font(.largeTitle.bold())
+                            .multilineTextAlignment(.center)
+                            .padding(.top, BaseCard.titleTopPadding)
+                            .padding(.horizontal, BaseCard.setCardInset)
+                            .padding(.bottom, BaseCard.titleBottomPadding)
+                            .hidden()
+                    }
+
+                    ZStack(alignment: .bottom) {
+                        ForEach((0..<exercise.sets).reversed(), id: \.self) { cardIndex in
+                            let isTop = cardIndex == setIndex
+                            let isDealt = cardIndex >= (exercise.sets - dealtCount)
+                            DeckCard(
+                                exercise: exercise,
+                                setIndex: cardIndex,
+                                isTop: isTop,
+                                progressViewTarget: progressViewTarget,
+                                completedReps: isTop ? $completedReps : .constant(0),
+                                onSetWillComplete: onSetWillComplete,
+                                onSetComplete: {
+                                    onSetComplete(completedReps)
+                                    completedReps = 0
+                                }
+                            )
+                            .opacity(isDealt ? 1 : 0)
+                            .offset(y: isDealt ? 0 : -100)
+                            .if(cardIndex < setIndex) { view in
+                                view.hidden()
                             }
-                        )
-                        .opacity(isDealt ? 1 : 0)
-                        .offset(y: isDealt ? 0 : -100)
-                        .if(cardIndex < setIndex) { view in
-                            view.hidden()
                         }
                     }
+                    .padding(BaseCard.setCardInset)
                 }
-                .padding(BaseCard.setCardInset)
             }
             .task(id: exercise.id) {
                 try? await Task.sleep(for: .seconds(ExerciseView.entryDuration))

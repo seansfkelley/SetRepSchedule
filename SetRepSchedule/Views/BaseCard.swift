@@ -6,6 +6,8 @@ import SwiftData
 // exactly fit a SetCard (measured by rendering an invisible one).
 struct BaseCard: View {
     public static let setCardInset: CGFloat = 12
+    public static let titleTopPadding: CGFloat = 30   // fadeLength * 3 / 2
+    public static let titleBottomPadding: CGFloat = 10 // fadeLength / 2
 
     var exercise: Exercise
 
@@ -34,9 +36,30 @@ struct BaseCard: View {
                 Text(exercise.name)
                     .font(.largeTitle.bold())
                     .multilineTextAlignment(.center)
-                    .padding(.top, fadeLength * 3 / 2)
+                    .padding(.top, Self.titleTopPadding)
                     .padding(.horizontal, Self.setCardInset)
-                    .padding(.bottom, fadeLength / 2)
+                    .padding(.bottom, Self.titleBottomPadding)
+            }
+
+            // Dotted zone: hidden SetCard (with matching inset) drives the height.
+            // The overlay fills exactly that padded area, so the border hugs the card edge.
+            SetCard(
+                exercise: exercise,
+                setIndex: 0,
+                completedReps: .constant(0),
+                onAdvance: {}
+            )
+            .padding(BaseCard.setCardInset)
+            .hidden()
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+                    .foregroundStyle(.tertiary)
+                    .padding(Self.setCardInset)
+
+                Text("^[\(exercise.sets) set](inflect: true) complete!")
+                    .font(.title2)
+                    .foregroundStyle(.tertiary)
             }
 
             // Body area: centers if content fits, scrolls if it doesn't
@@ -77,31 +100,9 @@ struct BaseCard: View {
                         LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
                             .frame(height: fadeLength)
                         Rectangle()
-                        LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
-                            .frame(height: fadeLength)
                     }
                 }
                 .animation(.easeInOut(duration: 0.4), value: phraseIndex)
-            }
-
-            // Dotted zone: hidden SetCard (with matching inset) drives the height.
-            // The overlay fills exactly that padded area, so the border hugs the card edge.
-            SetCard(
-                exercise: exercise,
-                setIndex: 0,
-                completedReps: .constant(0),
-                onAdvance: {}
-            )
-            .hidden()
-            .overlay {
-                RoundedRectangle(cornerRadius: 10)
-                    .strokeBorder(style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
-                    .foregroundStyle(.tertiary)
-                    .padding(Self.setCardInset)
-
-                Text("^[\(exercise.sets) set](inflect: true) complete!")
-                    .font(.title3)
-                    .foregroundStyle(.tertiary)
             }
         }
         .background(
