@@ -22,7 +22,7 @@ func previewPlan(in container: ModelContainer, name: String = "My Plan") -> Plan
 func previewExercise(
     in container: ModelContainer,
     plan: Plan? = nil,
-    order: Double = 1.0,
+    order: Int = 1,
     name: String = "Squats",
     sets: Int = 3,
     reps: Int = 12,

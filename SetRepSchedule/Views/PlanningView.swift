@@ -70,15 +70,9 @@ struct ExerciseListView: View {
 
     private func duplicateExercise(_ exercise: Exercise) {
         guard let index = exercises.firstIndex(where: { $0.id == exercise.id }) else { return }
-        let nextOrder: Double
-        if index + 1 < exercises.count {
-            nextOrder = (exercise.order + exercises[index + 1].order) / 2.0
-        } else {
-            nextOrder = exercise.order + 1.0
-        }
         let copy = Exercise(
             plan: exercise.plan,
-            order: nextOrder,
+            order: 0,
             name: exercise.name,
             sets: exercise.sets,
             reps: exercise.reps,
@@ -88,12 +82,18 @@ struct ExerciseListView: View {
         )
         withAnimation {
             modelContext.insert(copy)
+            // exercises is sorted by order; insert copy right after the original and renumber.
+            var sorted = Array(exercises)
+            sorted.insert(copy, at: index + 1)
+            for (i, ex) in sorted.enumerated() {
+                ex.order = i + 1
+            }
             try? modelContext.save()
         }
     }
 
     private func addExerciseToEnd() {
-        let order = (exercises.last?.order ?? 0) + 1.0
+        let order = (exercises.last?.order ?? 0) + 1
         let exercise = Exercise(plan: plan, order: order)
         modelContext.insert(exercise)
         try? modelContext.save()
@@ -104,7 +104,7 @@ struct ExerciseListView: View {
         var sorted = exercises
         sorted.move(fromOffsets: source, toOffset: destination)
         for (i, exercise) in sorted.enumerated() {
-            exercise.order = Double(i + 1)
+            exercise.order = i + 1
         }
         try? modelContext.save()
     }

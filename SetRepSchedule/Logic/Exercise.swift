@@ -5,7 +5,10 @@ import SwiftData
 class Exercise {
     var id: UUID = UUID()
     var plan: Plan?
-    var order: Double
+    // Contiguous Int is basically the worst option for performance because it requires eagerly
+    // renumbering on almost any mutation, but it's simple to implement and should reveal bugs
+    // quickly. We won't really have more than a dozen rows being updated at a time.
+    var order: Int
     var name: String
     var sets: Int
     var reps: Int
@@ -14,7 +17,7 @@ class Exercise {
     @Attribute(.externalStorage)
     var imageData: Data?
 
-    init(plan: Plan? = nil, order: Double, name: String = "", sets: Int = 3, reps: Int = 10, durationSeconds: Int64? = nil, notes: String = "", imageData: Data? = nil) {
+    init(plan: Plan? = nil, order: Int, name: String = "", sets: Int = 3, reps: Int = 10, durationSeconds: Int64? = nil, notes: String = "", imageData: Data? = nil) {
         self.plan = plan
         self.order = order
         self.name = name

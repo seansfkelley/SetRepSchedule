@@ -87,15 +87,13 @@ struct ContentView: View {
         let plan = Plan(name: "My Plan")
         modelContext.insert(plan)
 
-        let defaultExercises: [(String, Int, Int)] = [
-            ("Squats", 3, 12),
-            ("Push-ups", 3, 15),
-            ("Lunges", 3, 10),
-            ("Plank Hold", 3, 1),
-            ("Glute Bridges", 3, 15),
+        let defaultExercises: [(String, Int, Int, Int64?)] = [
+            ("Squats", 3, 10, nil),
+            ("Push-ups", 3, 15, nil),
+            ("Plank Hold", 3, 1, 15),
         ]
-        for (i, (name, sets, reps)) in defaultExercises.enumerated() {
-            let exercise = Exercise(plan: plan, order: Double(i + 1), name: name, sets: sets, reps: reps)
+        for (i, (name, sets, reps, duration)) in defaultExercises.enumerated() {
+            let exercise = Exercise(plan: plan, order: i + 1, name: name, sets: sets, reps: reps, durationSeconds: duration)
             modelContext.insert(exercise)
         }
 
