@@ -12,7 +12,8 @@ struct ActionButton: View {
     @Binding var completedReps: Int
     var onAdvance: () -> Void
 
-    @AppStorage("isMuted") private var isMuted: Bool = false
+    @AppStorage("isAudioMuted") private var isAudioMuted: Bool = false
+    @AppStorage("isHapticsMuted") private var isHapticsMuted: Bool = false
 
     @State private var timerState: TimerState = .waitingToStart
     @State private var remainingSeconds: Int64 = 0
@@ -92,7 +93,7 @@ struct ActionButton: View {
     private func startCountdown(duration: Int64) {
         remainingSeconds = duration
         timerState = .counting
-        FeedbackEngine.playFeedback(for: .startTimer, isMuted: isMuted)
+        FeedbackEngine.playFeedback(for: .startTimer, isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
         timerTask = Task { @MainActor in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
@@ -104,7 +105,7 @@ struct ActionButton: View {
                     } else {
                         timerState = .waitingToStart
                     }
-                    FeedbackEngine.playFeedback(for: .completeTimer(isLastRepOfSet), isMuted: isMuted)
+                    FeedbackEngine.playFeedback(for: .completeTimer(isLastRepOfSet), isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
                     completedReps += 1
                     break
                 }
@@ -115,7 +116,7 @@ struct ActionButton: View {
     private func abortCountdown() {
         timerTask?.cancel()
         timerTask = nil
-        FeedbackEngine.playFeedback(for: .abortTimer, isMuted: isMuted)
+        FeedbackEngine.playFeedback(for: .abortTimer, isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
         flashRed = true
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(0.25))
@@ -137,16 +138,16 @@ struct ActionButton: View {
             case .counting:
                 abortCountdown()
             case .waitingToConfirmCompletion:
-                FeedbackEngine.playFeedback(for: .rep(true), isMuted: isMuted)
+                FeedbackEngine.playFeedback(for: .rep(true), isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
                 onAdvance()
             }
         } else {
             completedReps += 1
             if completedReps >= reps {
-                FeedbackEngine.playFeedback(for: .rep(true), isMuted: isMuted)
+                FeedbackEngine.playFeedback(for: .rep(true), isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
                 onAdvance()
             } else {
-                FeedbackEngine.playFeedback(for: .rep(false), isMuted: isMuted)
+                FeedbackEngine.playFeedback(for: .rep(false), isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
             }
         }
     }

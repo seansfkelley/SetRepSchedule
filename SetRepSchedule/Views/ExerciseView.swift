@@ -8,7 +8,8 @@ struct ExerciseView: View {
 
     @State private var completedReps: [UUID: [Int]] = [:]
     @State private var isConfirmingExit: Bool = false
-    @AppStorage("isMuted") private var isMuted: Bool = false
+    @AppStorage("isAudioMuted") private var isAudioMuted: Bool = false
+    @AppStorage("isHapticsMuted") private var isHapticsMuted: Bool = false
 
     @State private var exerciseIndex: Int = 0
     @State private var completedSetsInCurrentExercise: Int = 0
@@ -146,10 +147,18 @@ struct ExerciseView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        isMuted.toggle()
+                        isHapticsMuted.toggle()
                     } label: {
-                        Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                            .foregroundStyle(isMuted ? .red : .primary)
+                        Image(systemName: isHapticsMuted ? "waveform.slash" : "waveform")
+                            .foregroundStyle(isHapticsMuted ? .red : .primary)
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isAudioMuted.toggle()
+                    } label: {
+                        Image(systemName: isAudioMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                            .foregroundStyle(isAudioMuted ? .red : .primary)
                     }
                 }
 

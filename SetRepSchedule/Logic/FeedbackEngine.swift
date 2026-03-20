@@ -7,10 +7,15 @@ enum FeedbackEngine {
         case startTimer, abortTimer, completeTimer(Bool)
     }
 
-    static func playFeedback(for event: Event, isMuted: Bool) {
-        HapticFeedback.play(for: event)
-        AudioFeedback.play(for: event, isMuted: isMuted)
+    static func playFeedback(for event: Event, isAudioMuted: Bool, isHapticsMuted: Bool) {
+        if !isHapticsMuted {
+            HapticFeedback.play(for: event)
+        }
+        if !isAudioMuted {
+            AudioFeedback.play(for: event)
+        }
     }
+
 }
 
 // MARK: - AudioFeedback
@@ -24,9 +29,7 @@ private enum AudioFeedback {
     private static let click = makeClick(sampleRate: sampleRate)
     private static let lowClick = makeClick(sampleRate: sampleRate, frequency: 300)
 
-    fileprivate static func play(for event: FeedbackEngine.Event, isMuted: Bool) {
-        guard !isMuted else { return }
-
+    fileprivate static func play(for event: FeedbackEngine.Event) {
         switch event {
         case .completeTimer(false):
             play(chime)
