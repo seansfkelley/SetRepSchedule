@@ -39,6 +39,7 @@ struct ExerciseListView: View {
                         ExerciseRow(
                             exercise: exercise,
                             focusedExerciseId: $focusedExerciseId,
+                            onDuplicate: { duplicateExercise(exercise) }
                         )
                     }
                     .onMove(perform: moveExercises)
@@ -64,6 +65,30 @@ struct ExerciseListView: View {
             .buttonBorderShape(.circle)
             .padding(.trailing)
             .padding(.bottom)
+        }
+    }
+
+    private func duplicateExercise(_ exercise: Exercise) {
+        guard let index = exercises.firstIndex(where: { $0.id == exercise.id }) else { return }
+        let nextOrder: Double
+        if index + 1 < exercises.count {
+            nextOrder = (exercise.order + exercises[index + 1].order) / 2.0
+        } else {
+            nextOrder = exercise.order + 1.0
+        }
+        let copy = Exercise(
+            plan: exercise.plan,
+            order: nextOrder,
+            name: exercise.name,
+            sets: exercise.sets,
+            reps: exercise.reps,
+            durationSeconds: exercise.durationSeconds,
+            notes: exercise.notes,
+            imageData: exercise.imageData
+        )
+        withAnimation {
+            modelContext.insert(copy)
+            try? modelContext.save()
         }
     }
 

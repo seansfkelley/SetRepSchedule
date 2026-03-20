@@ -5,6 +5,7 @@ import PhotosUI
 struct ExerciseRow: View {
     @Bindable var exercise: Exercise
     var focusedExerciseId: FocusState<UUID?>.Binding
+    var onDuplicate: () -> Void
     @State private var showInvalidPopover = false
 
     var body: some View {
@@ -43,6 +44,12 @@ struct ExerciseRow: View {
                     SetsRepsButton(exercise: exercise)
                     DurationButton(exercise: exercise)
                     NotesButton(exercise: exercise)
+                    Button {
+                        onDuplicate()
+                    } label: {
+                        Image(systemName: "plus.square.on.square")
+                    }
+                    .buttonStyle(.glass)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -56,8 +63,9 @@ struct ExerciseRow: View {
 private struct ExerciseRowPreviewWrapper: View {
     var exercise: Exercise
     @FocusState private var focused: UUID?
+    var onDuplicate: () -> Void = {}
     var body: some View {
-        ExerciseRow(exercise: exercise, focusedExerciseId: $focused)
+        ExerciseRow(exercise: exercise, focusedExerciseId: $focused, onDuplicate: onDuplicate)
     }
 }
 
