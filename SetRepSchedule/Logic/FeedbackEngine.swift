@@ -22,6 +22,7 @@ private enum AudioFeedback {
     private static let chime = makeChime(sampleRate: sampleRate)
     private static let risingChime = makeRisingChime(sampleRate: sampleRate)
     private static let click = makeClick(sampleRate: sampleRate)
+    private static let lowClick = makeClick(sampleRate: sampleRate, frequency: 300)
 
     fileprivate static func play(for event: FeedbackEngine.Event, isMuted: Bool) {
         guard !isMuted else { return }
@@ -34,7 +35,7 @@ private enum AudioFeedback {
         case .rep(false), .startTimer:
             play(click)
         case .abortTimer:
-            break
+            play(lowClick)
         }
     }
 
@@ -85,14 +86,14 @@ private enum AudioFeedback {
         return cafData(samples: samples, sampleRate: sampleRate)
     }
 
-    private static func makeClick(sampleRate: Double) -> Data {
+    private static func makeClick(sampleRate: Double, frequency: Double = 1000) -> Data {
         let duration = 0.08
         let frameCount = Int(sampleRate * duration)
         var samples = [Float](repeating: 0, count: frameCount)
 
         for i in 0..<frameCount {
             let t = Double(i) / sampleRate
-            samples[i] = Float(exp(-300.0 * t) * sin(2 * .pi * 1000.0 * t))
+            samples[i] = Float(exp(-300.0 * t) * sin(2 * .pi * frequency * t))
         }
 
         let peak = samples.map({ abs($0) }).max() ?? 1
@@ -178,7 +179,7 @@ private enum HapticFeedback {
 
         let events = switch event {
         case .rep(false), .startTimer: [
-            continuous(intensity: 1.0, sharpness: 0.5, decay: 0.12, sustained: 0, at: 0, duration: 0.2),
+            continuous(intensity: 1.0, sharpness: 0.8, decay: 0.2, sustained: 0, at: 0, duration: 0.25),
         ]
         case .rep(true), .completeTimer(true): [
             continuous(intensity: 0.8, sharpness: 0.5, decay: 0.1, sustained: 0, at: 0, duration: 0.15),
