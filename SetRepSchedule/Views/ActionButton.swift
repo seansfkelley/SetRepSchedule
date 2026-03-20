@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum TimerState {
-    case waitingToStart, counting, waitingToConfirmCompletion
+    case waitingToStart, counting
 }
 
 struct ActionButton: View {
@@ -29,11 +29,7 @@ struct ActionButton: View {
     }
 
     private var repSubtitle: Text {
-        if isLastRepOfSet {
-            Text("^[\(reps) Rep](inflect: true)")
-        } else {
-            Text("Rep \(completedReps + 1) of \(reps)")
-        }
+        Text("Rep \(completedReps + 1) of \(reps)")
     }
 
     private var buttonColor: Color {
@@ -42,8 +38,10 @@ struct ActionButton: View {
         } else if flashRed {
             .red
         } else if timerState == .counting {
-            Color(.systemBlue).opacity(0.15)
-        } else if timerState == .waitingToConfirmCompletion || (isLastRepOfSet && durationSeconds == nil) {
+            isLastRepOfSet
+            ? Color(.green).opacity(0.15)
+            : Color(.systemBlue).opacity(0.15)
+        } else if isLastRepOfSet {
             .green
         } else {
             .blue
@@ -67,9 +65,6 @@ struct ActionButton: View {
                         Text(String(format: "%d:%02d", Int(remainingSeconds / 60), Int(remainingSeconds % 60)))
                             .font(.system(size: 48, weight: .bold).monospacedDigit())
                         repSubtitle
-                    case .waitingToConfirmCompletion:
-                        Text(lastRepLabel)
-                            .font(.title.bold())
                     }
                 } else {
                     Text(isLastRepOfSet ? lastRepLabel : "Complete Rep")
@@ -91,6 +86,8 @@ struct ActionButton: View {
     }
 
     private func startCountdown(duration: Int64) {
+        guard timerState == .waitingToStart else { return }
+
         remainingSeconds = duration
         timerState = .counting
         FeedbackEngine.playFeedback(for: .startTimer, isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
@@ -100,13 +97,13 @@ struct ActionButton: View {
                 guard !Task.isCancelled else { break }
                 remainingSeconds -= 1
                 if remainingSeconds == 0 {
-                    if isLastRepOfSet {
-                        timerState = .waitingToConfirmCompletion
-                    } else {
-                        timerState = .waitingToStart
-                    }
+                    timerState = .waitingToStart
                     FeedbackEngine.playFeedback(for: .completeTimer(isLastRepOfSet), isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
-                    completedReps += 1
+                    if isLastRepOfSet {
+                        onAdvance()
+                    } else {
+                        completedReps += 1
+                    }
                     break
                 }
             }
@@ -121,12 +118,11 @@ struct ActionButton: View {
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(0.25))
             flashRed = false
-            if isLastRepOfSet {
-                timerState = .waitingToConfirmCompletion
-            } else {
-                timerState = .waitingToStart
-            }
+            timerState = .waitingToStart
             completedReps += 1
+            if isLastRepOfSet {
+                onAdvance()
+            }
         }
     }
 
@@ -137,9 +133,6 @@ struct ActionButton: View {
                 startCountdown(duration: duration)
             case .counting:
                 abortCountdown()
-            case .waitingToConfirmCompletion:
-                FeedbackEngine.playFeedback(for: .rep(true), isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
-                onAdvance()
             }
         } else {
             completedReps += 1
