@@ -64,16 +64,20 @@ struct CompletionRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: isFullyComplete ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .foregroundStyle(isFullyComplete ? .green : .red)
-                .font(.title3)
+            if exercise.skipped {
+                Image(systemName: "forward.end")
+                    .foregroundStyle(.secondary)
+                    .font(.title3)
+            } else {
+                Image(systemName: isFullyComplete ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .foregroundStyle(isFullyComplete ? .green : .red)
+                    .font(.title3)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(exercise.name.isEmpty ? "Unnamed Exercise" : exercise.name)
                     .font(.body)
-                    .if(exercise.name.isEmpty) { view in
-                        view.foregroundStyle(.secondary)
-                    }
+                    .foregroundStyle(exercise.skipped || exercise.name.isEmpty ? .secondary : .primary)
                 Text("^[\(exercise.sets) set](inflect: true) × ^[\(exercise.reps) rep](inflect: true)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -87,11 +91,18 @@ struct CompletionRow: View {
                     .scaledToFill()
                     .frame(width: imageSize, height: imageSize)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .opacity(exercise.skipped ? 0.4 : 1)
             }
 
-            Text("\(Int(completionFraction * 100))%")
-                .font(.title2.monospacedDigit())
-                .foregroundStyle(isFullyComplete ? .green : .red)
+            ZStack(alignment: .trailing) {
+                Text("100%")
+                    .font(.title2.monospacedDigit())
+                    .hidden()
+
+                Text(exercise.skipped ? "" : "\(Int(completionFraction * 100))%")
+                    .font(.title2.monospacedDigit())
+                    .foregroundStyle(isFullyComplete ? .green : .red)
+            }
         }
     }
 }
@@ -99,16 +110,56 @@ struct CompletionRow: View {
 #Preview("All complete") {
     let container = previewContainer()
     let plan = previewPlan(in: container)
-    _ = previewExercise(in: container, plan: plan, order: 1, name: "Squats", sets: 3, reps: 12,
-                        imageData: previewImageData(color: .systemBlue))
-    _ = previewExercise(in: container, plan: plan, order: 2, name: "Push-ups", sets: 3, reps: 15,
-                        imageData: previewImageData(color: .systemGreen))
-    _ = previewExercise(in: container, plan: plan, order: 3, name: "Lunges", sets: 3, reps: 10)
-    _ = previewExercise(in: container, plan: plan, order: 4, name: "Plank Hold", sets: 3, reps: 1, durationSeconds: 60)
+    _ = previewExercise(
+        in: container,
+        plan: plan,
+        order: 1,
+        name: "Squats",
+        sets: 3,
+        reps: 12,
+        imageData: previewImageData(color: .systemBlue)
+    )
+    _ = previewExercise(
+        in: container,
+        plan: plan,
+        order: 2,
+        name: "Push-ups",
+        sets: 3,
+        reps: 15,
+        imageData: previewImageData(color: .systemGreen)
+    )
+    _ = previewExercise(
+        in: container,
+        plan: plan,
+        order: 3,
+        name: "Lunges",
+        sets: 3,
+        reps: 10
+    )
+    _ = previewExercise(
+        in: container,
+        plan: plan,
+        order: 4,
+        name: "Plank Hold",
+        sets: 3,
+        reps: 1,
+        durationSeconds: 60
+    )
+    _ = previewExercise(
+        in: container,
+        plan: plan,
+        order: 5,
+        name: "Calf Raises",
+        sets: 3,
+        reps: 20,
+        skipped: true,
+        imageData: previewImageData(color: .systemCyan)
+    )
     let exercises = plan.exercises.sorted { $0.order < $1.order }.filter { $0.isValid }
-    // Every set fully completed
-    let completedReps = Dictionary(uniqueKeysWithValues: exercises.map { ex in
-        (ex.id, Array(repeating: ex.reps, count: ex.sets))
+    // Every set fully completed (skipped exercises have no entries)
+    let completedReps = Dictionary(uniqueKeysWithValues: exercises.compactMap { ex -> (UUID, [Int])? in
+        guard !ex.skipped else { return nil }
+        return (ex.id, Array(repeating: ex.reps, count: ex.sets))
     })
     return NavigationStack {
         CompletionView(exercises: exercises, completedReps: completedReps, onDone: {})
@@ -123,11 +174,12 @@ struct CompletionRow: View {
                         imageData: previewImageData(color: .systemOrange))
     _ = previewExercise(in: container, plan: plan, order: 2, name: "Push-ups", sets: 3, reps: 15)
     _ = previewExercise(in: container, plan: plan, order: 3, name: "Lunges", sets: 3, reps: 10,
-                        imageData: previewImageData(color: .systemPurple))
+                        skipped: true, imageData: previewImageData(color: .systemPurple))
     _ = previewExercise(in: container, plan: plan, order: 4, name: "Plank Hold", sets: 3, reps: 1, durationSeconds: 60)
     let exercises = plan.exercises.sorted { $0.order < $1.order }.filter { $0.isValid }
-    // Alternate full and partial completion
-    let completedReps = Dictionary(uniqueKeysWithValues: exercises.enumerated().map { i, ex in
+    // Alternate full and partial completion; skipped exercises have no entries
+    let completedReps = Dictionary(uniqueKeysWithValues: exercises.enumerated().compactMap { i, ex -> (UUID, [Int])? in
+        guard !ex.skipped else { return nil }
         let counts = i.isMultiple(of: 2)
             ? Array(repeating: ex.reps, count: ex.sets)            // fully done
             : Array(repeating: ex.reps / 2, count: ex.sets)        // half done

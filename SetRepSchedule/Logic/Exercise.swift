@@ -14,10 +14,11 @@ class Exercise {
     var reps: Int
     var durationSeconds: Int64?
     var notes: String = ""
+    var skipped: Bool = false
     @Attribute(.externalStorage)
     var imageData: Data?
 
-    init(plan: Plan? = nil, order: Int, name: String = "", sets: Int = 3, reps: Int = 10, durationSeconds: Int64? = nil, notes: String = "", imageData: Data? = nil) {
+    init(plan: Plan? = nil, order: Int, name: String = "", sets: Int = 3, reps: Int = 10, durationSeconds: Int64? = nil, notes: String = "", skipped: Bool = false, imageData: Data? = nil) {
         self.plan = plan
         self.order = order
         self.name = name
@@ -25,6 +26,7 @@ class Exercise {
         self.reps = reps
         self.durationSeconds = durationSeconds
         self.notes = notes
+        self.skipped = skipped
         self.imageData = imageData
     }
 

@@ -2,9 +2,13 @@ import SwiftUI
 import SwiftData
 
 struct ExerciseView: View {
-    var exercises: [Exercise]
+    var allExercises: [Exercise]
     var planName: String
     @Binding var mode: AppMode
+
+    private var exercises: [Exercise] {
+        allExercises.filter { !$0.skipped }
+    }
 
     @State private var completedReps: [UUID: [Int]] = [:]
     @State private var isConfirmingExit: Bool = false
@@ -76,7 +80,7 @@ struct ExerciseView: View {
                             .padding(.horizontal, 16)
                         } else {
                             CompletionView(
-                                exercises: exercises,
+                                exercises: allExercises,
                                 completedReps: completedReps,
                                 onDone: { mode = .planning }
                             )
@@ -99,14 +103,17 @@ struct ExerciseView: View {
                         .progressViewStyle(.linear)
                         .animation(.linear(duration: 0.4), value: completedSetsCount)
                         .padding(.horizontal)
-                        .padding(.vertical, 8)
+                        .padding(.top, 10)
                         .opacity(isCompleted ? 0 : 1)
                         .keyframeAnimator(
                             initialValue: ProgressSquishValues(),
                             trigger: setCompletionTrigger
                         ) { content, value in
-                            content
-                                .scaleEffect(x: value.scaleX, y: value.scaleY)
+                            content.scaleEffect(
+                                x: value.scaleX,
+                                y: value.scaleY * 1.5,
+                                anchor: .center,
+                            )
                         } keyframes: { _ in
                             KeyframeTrack(\.scaleX) {
                                 CubicKeyframe(0.9, duration: 0.15)
@@ -241,7 +248,7 @@ private enum CardState: Equatable {
     let container = previewContainer()
     let plan = previewFullPlan(in: container)
     let exercises = plan.exercises.filter { $0.isValid }.sorted { $0.order < $1.order }
-    return ExerciseView(exercises: exercises, planName: plan.name, mode: $mode)
+    return ExerciseView(allExercises: exercises, planName: plan.name, mode: $mode)
         .modelContainer(container)
 }
 
@@ -250,7 +257,7 @@ private enum CardState: Equatable {
     let container = previewContainer()
     let plan = previewShortPlan(in: container)
     let exercises = plan.exercises.filter { $0.isValid }.sorted { $0.order < $1.order }
-    return ExerciseView(exercises: exercises, planName: plan.name, mode: $mode)
+    return ExerciseView(allExercises: exercises, planName: plan.name, mode: $mode)
         .modelContainer(container)
 }
 
@@ -259,6 +266,6 @@ private enum CardState: Equatable {
     let container = previewContainer()
     let e1 = previewExercise(in: container, order: 1, name: "Plank Hold", sets: 3, reps: 1, durationSeconds: 60)
     let e2 = previewExercise(in: container, order: 2, name: "Wall Sit", sets: 3, reps: 1, durationSeconds: 45)
-    return ExerciseView(exercises: [e1, e2], planName: "Timed Plan", mode: $mode)
+    return ExerciseView(allExercises: [e1, e2], planName: "Timed Plan", mode: $mode)
         .modelContainer(container)
 }

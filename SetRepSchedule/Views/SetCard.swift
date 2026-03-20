@@ -14,7 +14,7 @@ struct SetCard: View {
                 ProgressView(value: Double(completedReps), total: Double(max(1, exercise.reps)))
                     .progressViewStyle(.linear)
                     .scaleEffect(y: 2, anchor: .top)
-                    .animation(.easeInOut(duration: 0.2), value: completedReps)
+                    .animation(.easeInOut(duration: 0.1), value: completedReps)
 
                 Text("Set \(setIndex + 1) of \(exercise.sets)")
                     .font(.title2)

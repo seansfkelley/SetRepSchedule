@@ -5,46 +5,53 @@ struct SetsRepsPopover: View {
     @Bindable var exercise: Exercise
 
     var body: some View {
-        HStack(spacing: 0) {
-            VStack(spacing: 0) {
-                Text("Sets")
-                    .font(.body)
-                    .fontWeight(.semibold)
-                Picker("Sets", selection: $exercise.sets) {
-                    ForEach(1...20, id: \.self) { i in
-                        Text("\(i)").tag(i)
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                VStack(spacing: 0) {
+                    Text("Sets")
+                        .font(.body)
+                        .fontWeight(.semibold)
+                    Picker("Sets", selection: $exercise.sets) {
+                        ForEach(1...20, id: \.self) { i in
+                            Text("\(i)").tag(i)
+                        }
                     }
+                    .pickerStyle(.wheel)
+                    .frame(width: 80)
                 }
-                .pickerStyle(.wheel)
-                .frame(width: 80)
+
+                VStack(spacing: 0) {
+                    Text("×")
+                        .font(.body)
+                        .fontWeight(.semibold)
+                    Picker("×", selection: .constant(0)) {
+                        Text("0").tag(0)
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(width: 10)
+                    .hidden()
+                }
+
+                VStack(spacing: 0) {
+                    Text("Reps")
+                        .font(.body)
+                        .fontWeight(.semibold)
+                    Picker("Reps", selection: $exercise.reps) {
+                        ForEach(1...50, id: \.self) { i in
+                            Text("\(i)").tag(i)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(width: 80)
+                }
             }
 
-            VStack(spacing: 0) {
-                Text("×")
-                    .font(.body)
-                    .fontWeight(.semibold)
-                Picker("×", selection: .constant(0)) {
-                    Text("0").tag(0)
-                }
-                .pickerStyle(.wheel)
-                .frame(width: 10)
-                .hidden()
-            }
-
-            VStack(spacing: 0) {
-                Text("Reps")
-                    .font(.body)
-                    .fontWeight(.semibold)
-                Picker("Reps", selection: $exercise.reps) {
-                    ForEach(1...50, id: \.self) { i in
-                        Text("\(i)").tag(i)
-                    }
-                }
-                .pickerStyle(.wheel)
-                .frame(width: 80)
-            }
+            Toggle("Skipped", isOn: $exercise.skipped)
+                .padding(.horizontal)
+                .padding(.bottom)
         }
-        .padding()
+        .padding(.top)
+        .padding(.horizontal)
         .presentationCompactAdaptation(.popover)
     }
 }
@@ -57,8 +64,14 @@ struct SetsRepsButton: View {
         Button {
             showPopover = true
         } label: {
-            Text("\(exercise.sets) × \(exercise.reps)")
-                .font(.subheadline.monospacedDigit())
+            HStack(spacing: 8) {
+                if exercise.skipped {
+                    Image(systemName: "forward.end")
+                }
+                Text("\(exercise.sets) × \(exercise.reps)")
+                    .font(.subheadline.monospacedDigit())
+            }
+            .foregroundStyle(exercise.skipped ? .tertiary : .primary)
         }
         .buttonStyle(.glass)
         .popover(isPresented: $showPopover) {

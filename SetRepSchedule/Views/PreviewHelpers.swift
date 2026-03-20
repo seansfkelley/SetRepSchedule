@@ -28,6 +28,7 @@ func previewExercise(
     reps: Int = 12,
     durationSeconds: Int64? = nil,
     notes: String = "",
+    skipped: Bool = false,
     imageData: Data? = nil
 ) -> Exercise {
     let exercise = Exercise(
@@ -38,6 +39,7 @@ func previewExercise(
         reps: reps,
         durationSeconds: durationSeconds,
         notes: notes,
+        skipped: skipped,
         imageData: imageData
     )
     container.mainContext.insert(exercise)
@@ -62,6 +64,8 @@ func previewShortPlan(in container: ModelContainer) -> Plan {
                         imageData: previewImageData(color: .systemBlue))
     _ = previewExercise(in: container, plan: plan, order: 2, name: "Squats", sets: 1, reps: 3,
                         imageData: previewImageData(color: .systemOrange))
+    _ = previewExercise(in: container, plan: plan, order: 3, name: "Lunges", sets: 2, reps: 10,
+                        skipped: true)
     return plan
 }
 
@@ -73,6 +77,7 @@ func previewFullPlan(in container: ModelContainer) -> Plan {
     _ = previewExercise(in: container, plan: plan, order: 2, name: "Push-ups", sets: 3, reps: 15)
     _ = previewExercise(in: container, plan: plan, order: 3, name: "Lunges", sets: 3, reps: 10, durationSeconds: 45)
     _ = previewExercise(in: container, plan: plan, order: 4, name: "Plank Hold", sets: 3, reps: 1, durationSeconds: 60)
-    _ = previewExercise(in: container, plan: plan, order: 5, name: "", sets: 2, reps: 8)  // invalid — no name
+    _ = previewExercise(in: container, plan: plan, order: 5, name: "Calf Raises", sets: 3, reps: 20, skipped: true)
+    _ = previewExercise(in: container, plan: plan, order: 6, name: "", sets: 2, reps: 8)  // invalid — no name
     return plan
 }

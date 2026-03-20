@@ -1,5 +1,6 @@
 import AVFoundation
 import CoreHaptics
+import SwiftUI
 
 enum FeedbackEngine {
     enum Event {
@@ -255,3 +256,24 @@ private enum HapticFeedback {
         )
     }
 }
+// MARK: - Preview
+
+#Preview {
+    let events: [(String, FeedbackEngine.Event)] = [
+        ("Rep", .rep(false)),
+        ("Rep (last in set)", .rep(true)),
+        ("Start Timer", .startTimer),
+        ("Abort Timer", .abortTimer),
+        ("Complete Timer", .completeTimer(false)),
+        ("Complete Timer (last in set)", .completeTimer(true)),
+    ]
+
+    List {
+        ForEach(events, id: \.0) { label, event in
+            Button(label) {
+                FeedbackEngine.playFeedback(for: event, isAudioMuted: false, isHapticsMuted: false)
+            }
+        }
+    }
+}
+
