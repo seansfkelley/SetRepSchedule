@@ -1,87 +1,55 @@
 import AVFoundation
 import CoreHaptics
 
-/// Plays haptic and audio feedback for workout events.
 enum FeedbackEngine {
     enum Event {
         case rep(Bool)
         case startTimer, abortTimer, completeTimer(Bool)
     }
 
-    private static var hapticEngine: CHHapticEngine?
-    private static var chimePlayer: AVAudioPlayer?
+    static func playFeedback(for event: Event, isMuted: Bool) {
+        HapticFeedback.play(for: event)
+        AudioFeedback.play(for: event, isMuted: isMuted)
+    }
+}
 
-    private static let chimeData = makeChimeData(
-        format: AVAudioFormat(
-            commonFormat: .pcmFormatFloat32,
-            sampleRate: 44100,
-            channels: 1,
-            interleaved: false
-        )!
+// MARK: - AudioFeedback
+
+private enum AudioFeedback {
+    private static let format = AVAudioFormat(
+        commonFormat: .pcmFormatFloat32,
+        sampleRate: 44100,
+        channels: 1,
+        interleaved: false
     )
 
-    static func prepare() {
-        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
-        do {
-            let e = try CHHapticEngine()
-            e.isAutoShutdownEnabled = true
-            try e.start()
-            hapticEngine = e
-        } catch {
-            hapticEngine = nil
-        }
-    }
+    private static var player: AVAudioPlayer?
 
-    static func playFeedback(for event: Event, isMuted: Bool) {
-        let hapticEvents: [CHHapticEvent] = switch event {
-        case .rep(false): [
-            transient(intensity: 1.0, sharpness: 0.5, at: 0),
-            transient(intensity: 1.0, sharpness: 0.5, at: 0.2),
-        ]
-        case .rep(true): [
-            continuous(intensity: 0.6, sharpness: 0.2, attack: 0.25, release: 0.05, at: 0, duration: 0.4),
-            transient(intensity: 1.0, sharpness: 0.7, at: 0.5),
-            transient(intensity: 1.0, sharpness: 0.7, at: 0.75),
-            transient(intensity: 1.0, sharpness: 0.7, at: 1.0),
-        ]
-        case .startTimer: [
-            transient(intensity: 1.0, sharpness: 1.0, at: 0),
-            transient(intensity: 1.0, sharpness: 1.0, at: 0.25),
-            transient(intensity: 1.0, sharpness: 1.0, at: 0.5),
-        ]
-        case .abortTimer: [
-            continuous(intensity: 1.0, sharpness: 0.8, decay: 0.5, sustained: 0, at: 0, duration: 0.6),
-        ]
-        case .completeTimer: [
-            continuous(intensity: 0.6, sharpness: 0.2, attack: 0.25, release: 0.05, at: 0, duration: 0.4),
-        ]
-        }
+    private static let chimeData: Data? = {
+        guard let format else { return nil }
+        return makeChimeData(sampleRate: format.sampleRate)
+    }()
 
-        if !hapticEvents.isEmpty {
-            play(hapticEvents)
-        }
-
+    fileprivate static func play(for event: FeedbackEngine.Event, isMuted: Bool) {
+        guard !isMuted else { return }
         switch event {
         case .completeTimer:
-            if !isMuted { playChime() }
+            playChime()
         default:
             break
         }
     }
 
-    // MARK: - Chime
-
     private static func playChime() {
+        guard let chimeData else { return }
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, options: .mixWithOthers)
         try? session.setActive(true)
-
-        chimePlayer = try? AVAudioPlayer(data: chimeData, fileTypeHint: AVFileType.caf.rawValue)
-        chimePlayer?.play()
+        player = try? AVAudioPlayer(data: chimeData, fileTypeHint: AVFileType.caf.rawValue)
+        player?.play()
     }
 
-    private static func makeChimeData(format: AVAudioFormat) -> Data {
-        let sampleRate = format.sampleRate
+    private static func makeChimeData(sampleRate: Double) -> Data {
         let duration = 1.2
         let frameCount = Int(sampleRate * duration)
         var samples = [Float](repeating: 0, count: frameCount)
@@ -144,8 +112,63 @@ enum FeedbackEngine {
 
         return data
     }
+}
 
-    // MARK: - Haptics
+// MARK: - HapticFeedback
+
+private enum HapticFeedback {
+    private static var engine: CHHapticEngine?
+
+    fileprivate static func play(for event: FeedbackEngine.Event) {
+        prepare()
+        guard let engine else { return }
+
+        let events: [CHHapticEvent] = switch event {
+        case .rep(false): [
+            transient(intensity: 1.0, sharpness: 0.5, at: 0),
+            transient(intensity: 1.0, sharpness: 0.5, at: 0.2),
+        ]
+        case .rep(true), .completeTimer(true): [
+            continuous(intensity: 0.6, sharpness: 0.2, attack: 0.25, release: 0.05, at: 0, duration: 0.4),
+            transient(intensity: 1.0, sharpness: 0.7, at: 0.5),
+            transient(intensity: 1.0, sharpness: 0.7, at: 0.75),
+            transient(intensity: 1.0, sharpness: 0.7, at: 1.0),
+        ]
+        case .startTimer: [
+            transient(intensity: 1.0, sharpness: 1.0, at: 0),
+            transient(intensity: 1.0, sharpness: 1.0, at: 0.25),
+            transient(intensity: 1.0, sharpness: 1.0, at: 0.5),
+        ]
+        case .abortTimer: [
+            continuous(intensity: 1.0, sharpness: 0.8, decay: 0.5, sustained: 0, at: 0, duration: 0.6),
+        ]
+        case .completeTimer(false): [
+            continuous(intensity: 0.6, sharpness: 0.2, attack: 0.25, release: 0.05, at: 0, duration: 0.4),
+        ]
+        }
+
+        guard !events.isEmpty else { return }
+
+        do {
+            let pattern = try CHHapticPattern(events: events, parameters: [])
+            let player = try engine.makePlayer(with: pattern)
+            try player.start(atTime: CHHapticTimeImmediate)
+        } catch {
+            // Haptics are best-effort; ignore failures.
+        }
+    }
+
+    private static func prepare() {
+        guard engine == nil, CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        do {
+            let e = try CHHapticEngine()
+            e.isAutoShutdownEnabled = true
+            try e.start()
+            engine = e
+        } catch {
+            engine = nil
+        }
+    }
 
     private static func continuous(
         intensity: Float,
@@ -181,18 +204,5 @@ enum FeedbackEngine {
             ],
             relativeTime: time
         )
-    }
-
-    private static func play(_ events: [CHHapticEvent]) {
-        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
-        if hapticEngine == nil { prepare() }
-        guard let hapticEngine else { return }
-        do {
-            let pattern = try CHHapticPattern(events: events, parameters: [])
-            let player = try hapticEngine.makePlayer(with: pattern)
-            try player.start(atTime: CHHapticTimeImmediate)
-        } catch {
-            // Haptics are best-effort; ignore failures.
-        }
     }
 }
