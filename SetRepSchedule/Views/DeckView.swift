@@ -15,16 +15,9 @@ struct DeckView: View {
         BaseCard(exercise: exercise)
             .overlay(alignment: .top) {
                 VStack(spacing: 0) {
-                    // Invisible title spacer matching BaseCard's title layout
-                    if !exercise.name.isEmpty {
-                        Text(exercise.name)
-                            .font(.largeTitle.bold())
-                            .multilineTextAlignment(.center)
-                            .padding(.top, BaseCard.titleTopPadding)
-                            .padding(.horizontal, BaseCard.setCardInset)
-                            .padding(.bottom, BaseCard.titleBottomPadding)
-                            .hidden()
-                    }
+                    ExerciseTitle(name: exercise.name)
+                        .padding(.horizontal)
+                        .hidden()
 
                     ZStack(alignment: .bottom) {
                         ForEach((0..<exercise.sets).reversed(), id: \.self) { cardIndex in

@@ -31,18 +31,9 @@ struct BaseCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Title: always visible at top, outside the scroll area
-            if !exercise.name.isEmpty {
-                Text(exercise.name)
-                    .font(.largeTitle.bold())
-                    .multilineTextAlignment(.center)
-                    .padding(.top, Self.titleTopPadding)
-                    .padding(.horizontal, Self.setCardInset)
-                    .padding(.bottom, Self.titleBottomPadding)
-            }
+            ExerciseTitle(name: exercise.name)
+                .padding(.horizontal)
 
-            // Dotted zone: hidden SetCard (with matching inset) drives the height.
-            // The overlay fills exactly that padded area, so the border hugs the card edge.
             SetCard(
                 exercise: exercise,
                 setIndex: 0,
