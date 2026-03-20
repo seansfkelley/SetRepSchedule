@@ -30,23 +30,97 @@ private enum AudioFeedback {
         return makeChimeData(sampleRate: format.sampleRate)
     }()
 
+    private static let doubleChimeData: Data? = {
+        guard let format else { return nil }
+        return makeDoubleChimeData(sampleRate: format.sampleRate)
+    }()
+
+    private static let thockData: Data? = {
+        guard let format else { return nil }
+        return makeThockData(sampleRate: format.sampleRate)
+    }()
+
     fileprivate static func play(for event: FeedbackEngine.Event, isMuted: Bool) {
         guard !isMuted else { return }
         switch event {
-        case .completeTimer:
-            playChime()
+        case .completeTimer(false):
+            play(chimeData)
+        case .rep(true), .completeTimer(true):
+            play(doubleChimeData)
+        case .rep(false), .startTimer:
+            play(thockData)
         default:
             break
         }
     }
 
-    private static func playChime() {
-        guard let chimeData else { return }
+    private static func play(_ data: Data?) {
+        guard let data else { return }
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, options: .mixWithOthers)
         try? session.setActive(true)
-        player = try? AVAudioPlayer(data: chimeData, fileTypeHint: AVFileType.caf.rawValue)
+        player = try? AVAudioPlayer(data: data, fileTypeHint: AVFileType.caf.rawValue)
         player?.play()
+    }
+
+    // Two short chime hits with a gap between them.
+    private static func makeDoubleChimeData(sampleRate: Double) -> Data {
+        let hitDuration = 0.35
+        let gap = 0.15
+        let totalDuration = hitDuration * 2 + gap
+        let frameCount = Int(sampleRate * totalDuration)
+        var samples = [Float](repeating: 0, count: frameCount)
+
+        let partials: [(freq: Double, amp: Double, decay: Double)] = [
+            (1320.0, 1.0,  8.0),
+            (3960.0, 0.5,  10.0),
+            (2200.0, 0.35, 12.0),
+        ]
+
+        let offsets = [0.0, hitDuration + gap]
+        for offset in offsets {
+            for (freq, amp, decay) in partials {
+                let start = Int(offset * sampleRate)
+                for i in start..<frameCount {
+                    let t = Double(i - start) / sampleRate
+                    samples[i] += Float(amp * exp(-decay * t) * sin(2 * .pi * freq * t))
+                }
+            }
+        }
+
+        let peak = samples.map({ abs($0) }).max() ?? 1
+        let scale = Float(0.9) / peak
+        samples = samples.map { $0 * scale }
+
+        return cafData(samples: samples, sampleRate: sampleRate)
+    }
+
+    // A tight percussive thock: high-freq transient body + low thud.
+    private static func makeThockData(sampleRate: Double) -> Data {
+        let duration = 0.12
+        let frameCount = Int(sampleRate * duration)
+        var samples = [Float](repeating: 0, count: frameCount)
+
+        // High-frequency click body
+        let partials: [(freq: Double, amp: Double, decay: Double)] = [
+            (4000.0, 0.6, 80.0),
+            (2800.0, 0.4, 60.0),
+            (1800.0, 0.3, 50.0),
+            (300.0,  1.0, 40.0),  // low thud for body
+        ]
+
+        for (freq, amp, decay) in partials {
+            for i in 0..<frameCount {
+                let t = Double(i) / sampleRate
+                samples[i] += Float(amp * exp(-decay * t) * sin(2 * .pi * freq * t))
+            }
+        }
+
+        let peak = samples.map({ abs($0) }).max() ?? 1
+        let scale = Float(0.9) / peak
+        samples = samples.map { $0 * scale }
+
+        return cafData(samples: samples, sampleRate: sampleRate)
     }
 
     private static func makeChimeData(sampleRate: Double) -> Data {
