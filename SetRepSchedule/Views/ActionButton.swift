@@ -16,6 +16,8 @@ struct ActionButton: View {
     @Binding var completedReps: Int
     var onAdvance: () -> Void
 
+    @AppStorage("isMuted") private var isMuted: Bool = false
+
     @State private var timerState: TimerState = .waitingToStart
     @State private var remainingSeconds: Int64 = 0
     @State private var flashRed = false
@@ -94,6 +96,11 @@ struct ActionButton: View {
         }
     }
 
+    private func playChime() {
+        guard !isMuted else { return }
+        Chime.play()
+    }
+
     private func triggerHaptic(_ feedback: SensoryFeedback) {
         hapticFeedback = feedback
         hapticTrigger += 1
@@ -109,6 +116,7 @@ struct ActionButton: View {
                 guard !Task.isCancelled else { break }
                 remainingSeconds -= 1
                 if remainingSeconds == 0 {
+                    playChime()
                     if isLastRepOfSet {
                         timerState = .waitingToConfirmCompletion
                     } else {
