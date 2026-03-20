@@ -25,7 +25,7 @@ private enum AudioFeedback {
 
     fileprivate static func play(for event: FeedbackEngine.Event, isMuted: Bool) {
         guard !isMuted else { return }
-        
+
         switch event {
         case .completeTimer(false):
             play(chime)
@@ -176,27 +176,19 @@ private enum HapticFeedback {
         prepare()
         guard let engine else { return }
 
-        let events: [CHHapticEvent] = switch event {
-        case .rep(false): [
-            transient(intensity: 1.0, sharpness: 0.5, at: 0),
-            transient(intensity: 1.0, sharpness: 0.5, at: 0.2),
+        let events = switch event {
+        case .rep(false), .startTimer: [
+            continuous(intensity: 1.0, sharpness: 0.5, decay: 0.12, sustained: 0, at: 0, duration: 0.2),
         ]
         case .rep(true), .completeTimer(true): [
-            continuous(intensity: 0.6, sharpness: 0.2, attack: 0.25, release: 0.05, at: 0, duration: 0.4),
-            transient(intensity: 1.0, sharpness: 0.7, at: 0.5),
-            transient(intensity: 1.0, sharpness: 0.7, at: 0.75),
-            transient(intensity: 1.0, sharpness: 0.7, at: 1.0),
-        ]
-        case .startTimer: [
-            transient(intensity: 1.0, sharpness: 1.0, at: 0),
-            transient(intensity: 1.0, sharpness: 1.0, at: 0.25),
-            transient(intensity: 1.0, sharpness: 1.0, at: 0.5),
-        ]
-        case .abortTimer: [
-            continuous(intensity: 1.0, sharpness: 0.8, decay: 0.5, sustained: 0, at: 0, duration: 0.6),
+            continuous(intensity: 0.8, sharpness: 0.5, decay: 0.1, sustained: 0, at: 0, duration: 0.15),
+            continuous(intensity: 1.0, sharpness: 0.8, decay: 0.75, sustained: 0, at: 0.15, duration: 0.75),
         ]
         case .completeTimer(false): [
-            continuous(intensity: 0.6, sharpness: 0.2, attack: 0.25, release: 0.05, at: 0, duration: 0.4),
+            continuous(intensity: 0.8, sharpness: 0.6, decay: 0.4, sustained: 0, at: 0, duration: 0.5),
+        ]
+        case .abortTimer: [
+            continuous(intensity: 1.0, sharpness: 0.8, decay: 0.75, sustained: 0, at: 0, duration: 1.0),
         ]
         }
 
