@@ -275,8 +275,8 @@ private enum CardState: Equatable {
 #Preview("Exercise mode — timed exercise") {
     @Previewable @State var mode: AppMode = .exercise
     let container = previewContainer()
-    let e1 = previewExercise(in: container, order: 1, name: "Plank Hold", sets: 3, reps: 1, durationSeconds: 60)
-    let e2 = previewExercise(in: container, order: 2, name: "Wall Sit", sets: 3, reps: 1, durationSeconds: 45)
+    let e1 = previewExercise(in: container, order: 1, name: "Plank Hold", sets: 1, reps: 1, durationSeconds: 3)
+    let e2 = previewExercise(in: container, order: 2, name: "Wall Sit", sets: 1, reps: 1, durationSeconds: 3)
     return ExerciseView(allExercises: [e1, e2], planName: "Timed Plan", mode: $mode)
         .modelContainer(container)
 }

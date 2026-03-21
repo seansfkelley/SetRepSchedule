@@ -91,7 +91,11 @@ struct ActionButton: View {
 
         remainingSeconds = duration
         timerState = .counting
-        FeedbackEngine.playFeedback(for: .startTimer, isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
+        FeedbackEngine.playFeedback(
+            for: .startTimer,
+            isAudioMuted: isAudioMuted,
+            isHapticsMuted: isHapticsMuted,
+        )
         timerTask = Task { @MainActor in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
@@ -99,11 +103,20 @@ struct ActionButton: View {
                 remainingSeconds -= 1
                 if remainingSeconds == 0 {
                     timerState = .waitingToStart
-                    FeedbackEngine.playFeedback(for: .completeTimer(isLastRepOfSet), isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
-                    if isLastRepOfSet {
+                    completedReps += 1
+                    if completedReps >= reps {
+                        FeedbackEngine.playFeedback(
+                            for: .completeTimer(true),
+                            isAudioMuted: isAudioMuted,
+                            isHapticsMuted: isHapticsMuted,
+                        )
                         onAdvance()
                     } else {
-                        completedReps += 1
+                        FeedbackEngine.playFeedback(
+                            for: .completeTimer(false),
+                            isAudioMuted: isAudioMuted,
+                            isHapticsMuted: isHapticsMuted,
+                        )
                     }
                     break
                 }
@@ -114,14 +127,19 @@ struct ActionButton: View {
     private func abortCountdown() {
         timerTask?.cancel()
         timerTask = nil
-        FeedbackEngine.playFeedback(for: .abortTimer, isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
+        FeedbackEngine.playFeedback(
+            for: .abortTimer,
+            isAudioMuted: isAudioMuted,
+            isHapticsMuted: isHapticsMuted,
+        )
+
         flashRed = true
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(0.25))
             flashRed = false
             timerState = .waitingToStart
             completedReps += 1
-            if isLastRepOfSet {
+            if completedReps >= reps {
                 onAdvance()
             }
         }
@@ -138,10 +156,18 @@ struct ActionButton: View {
         } else {
             completedReps += 1
             if completedReps >= reps {
-                FeedbackEngine.playFeedback(for: .rep(true), isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
+                FeedbackEngine.playFeedback(
+                    for: .rep(true),
+                    isAudioMuted: isAudioMuted,
+                    isHapticsMuted: isHapticsMuted,
+                )
                 onAdvance()
             } else {
-                FeedbackEngine.playFeedback(for: .rep(false), isAudioMuted: isAudioMuted, isHapticsMuted: isHapticsMuted)
+                FeedbackEngine.playFeedback(
+                    for: .rep(false),
+                    isAudioMuted: isAudioMuted,
+                    isHapticsMuted: isHapticsMuted,
+                )
             }
         }
     }
