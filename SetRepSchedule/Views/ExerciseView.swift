@@ -149,24 +149,46 @@ struct ExerciseView: View {
                 .frame(height: 36)
                 .onPreferenceChange(ProgressBarFrameKey.self) { progressBarFrame = $0 }
             }
+            .onChange(of: isConfirmingExit) {
+                if isConfirmingExit {
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(2))
+                        withAnimation { isConfirmingExit = false }
+                    }
+                }
+            }
             .navigationTitle(planName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if isCompleted {
-                        Button { mode = .planning } label: {
+                        Button {
+                            withAnimation {
+                                mode = .planning
+                            }
+                        } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "chevron.left")
                                 Text("Return").font(.title3)
                             }
                             .padding(.horizontal, 4)
+                            .contentShape(Capsule())
                         }
                     } else if isConfirmingExit {
-                        Button("End Exercises") { mode = .planning }
-                            .foregroundStyle(.red)
+                        Button("End Exercises") {
+                            withAnimation {
+                                mode = .planning
+                            }
+                        }
+                        .foregroundStyle(.red)
                     } else {
-                        Button { isConfirmingExit = true } label: {
-                            Image(systemName: "chevron.left")
+                        Button {
+                            withAnimation {
+                                isConfirmingExit = true
+                            }
+                        } label: {
+                            Label("Return", systemImage: "chevron.left")
+                                .labelStyle(.iconOnly)
                         }
                     }
                 }
@@ -186,10 +208,8 @@ struct ExerciseView: View {
                             .foregroundStyle(isAudioMuted ? .red : .primary)
                     }
                 }
-
             }
         }
-
     }
 
     // MARK: - Set Completion
