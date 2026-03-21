@@ -139,7 +139,8 @@ struct PlanningView: View {
                         Button {
                             mode = .exercise
                         } label: {
-                            Image(systemName: hasInvalidExercises ? "play.slash.fill" : "play.fill")
+                            Label("Start", systemImage: hasInvalidExercises ? "play.slash.fill" : "play.fill")
+                                .labelStyle(.iconOnly)
                         }
                         .tint(hasInvalidExercises ? .red : .green)
                         .disabled(hasInvalidExercises)

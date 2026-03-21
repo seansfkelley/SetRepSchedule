@@ -34,9 +34,10 @@ struct PlanMenuButton: View {
                 Label(deleteLabelText, systemImage: "trash")
             }
         } label: {
-            Image(systemName: "list.bullet")
+            Label("Plans", systemImage: "list.bullet")
                 .font(.system(size: 17, weight: .semibold))
                 .padding(8)
+                .labelStyle(.iconOnly)
         }
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
