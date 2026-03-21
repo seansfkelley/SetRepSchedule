@@ -169,7 +169,7 @@ struct ExerciseView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "chevron.left")
-                                Text("Return").font(.title3)
+                                Text("Return")
                             }
                             .padding(.horizontal, 4)
                             .contentShape(Capsule())
@@ -281,15 +281,6 @@ private enum CardState: Equatable {
 
 // MARK: - Previews
 
-#Preview("Exercise mode — first card") {
-    @Previewable @State var mode: AppMode = .exercise
-    let container = previewContainer()
-    let plan = previewFullPlan(in: container)
-    let exercises = plan.exercises.filter { $0.isValid }.sorted { $0.order < $1.order }
-    return ExerciseView(allExercises: exercises, planName: plan.name, mode: $mode)
-        .modelContainer(container)
-}
-
 #Preview("Exercise mode — short plan") {
     @Previewable @State var mode: AppMode = .exercise
     let container = previewContainer()
@@ -297,6 +288,7 @@ private enum CardState: Equatable {
     let exercises = plan.exercises.filter { $0.isValid }.sorted { $0.order < $1.order }
     return ExerciseView(allExercises: exercises, planName: plan.name, mode: $mode)
         .modelContainer(container)
+        .onChange(of: mode) { print("mode changed: \($1)") }
 }
 
 #Preview("Exercise mode — timed exercise") {
@@ -306,4 +298,24 @@ private enum CardState: Equatable {
     let e2 = previewExercise(in: container, order: 2, name: "Wall Sit", sets: 1, reps: 1, durationSeconds: 3)
     return ExerciseView(allExercises: [e1, e2], planName: "Timed Plan", mode: $mode)
         .modelContainer(container)
+        .onChange(of: mode) { print("mode changed: \($1)") }
+}
+
+#Preview("Exercise mode — singleton") {
+    @Previewable @State var mode: AppMode = .exercise
+    let container = previewContainer()
+    let exercise = previewExercise(in: container, order: 1, name: "Push-ups", sets: 1, reps: 1)
+    return ExerciseView(allExercises: [exercise], planName: "Single Rep Plan", mode: $mode)
+        .modelContainer(container)
+        .onChange(of: mode) { print("mode changed: \($1)") }
+}
+
+#Preview("Exercise mode - full plan") {
+    @Previewable @State var mode: AppMode = .exercise
+    let container = previewContainer()
+    let plan = previewFullPlan(in: container)
+    let exercises = plan.exercises.filter { $0.isValid }.sorted { $0.order < $1.order }
+    return ExerciseView(allExercises: exercises, planName: plan.name, mode: $mode)
+        .modelContainer(container)
+        .onChange(of: mode) { print("mode changed: \($1)") }
 }
