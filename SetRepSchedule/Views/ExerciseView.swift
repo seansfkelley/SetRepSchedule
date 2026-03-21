@@ -84,6 +84,16 @@ struct ExerciseView: View {
                                 completedReps: completedReps,
                                 onDone: { mode = .planning }
                             )
+                            .onAppear {
+                                Task { @MainActor in
+                                    try? await Task.sleep(for: .seconds(0.3)) // totally empirical
+                                    FeedbackEngine.playFeedback(
+                                        for: .workoutComplete,
+                                        isAudioMuted: isAudioMuted,
+                                        isHapticsMuted: isHapticsMuted,
+                                    )
+                                }
+                            }
                         }
                     }
                     .scaleEffect(state.scale)

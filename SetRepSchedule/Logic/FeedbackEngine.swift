@@ -6,6 +6,7 @@ enum FeedbackEngine {
     enum Event {
         case rep(Bool)
         case startTimer, abortTimer, completeTimer(Bool)
+        case workoutComplete
     }
 
     static func playFeedback(for event: Event, isAudioMuted: Bool, isHapticsMuted: Bool) {
@@ -27,6 +28,7 @@ private enum AudioFeedback {
     private static let risingChimePlayer = makePlayer(makeRisingChime(sampleRate: sampleRate))
     private static let clickPlayer = makePlayer(makeClick(sampleRate: sampleRate))
     private static let lowClickPlayer = makePlayer(makeClick(sampleRate: sampleRate, frequency: 300))
+    private static let multipleRisingChimesPlayer = makePlayer(multipleRisingChimes(sampleRate: sampleRate))
 
     fileprivate static func play(for event: FeedbackEngine.Event) {
         let session = AVAudioSession.sharedInstance()
@@ -41,6 +43,8 @@ private enum AudioFeedback {
             play(clickPlayer)
         case .abortTimer:
             play(lowClickPlayer)
+        case .workoutComplete:
+            play(multipleRisingChimesPlayer)
         }
     }
 
@@ -80,6 +84,39 @@ private enum AudioFeedback {
         for (offset, scale, partials) in hits {
             for (freq, amp, decay) in partials {
                 let start = Int(offset * sampleRate)
+                for i in start..<frameCount {
+                    let t = Double(i - start) / sampleRate
+                    samples[i] += Float(scale * amp * exp(-decay * t) * sin(2 * .pi * freq * t))
+                }
+            }
+        }
+
+        let peak = samples.map({ abs($0) }).max() ?? 1
+        let scale = Float(0.9) / peak
+        samples = samples.map { $0 * scale }
+
+        return cafData(samples: samples, sampleRate: sampleRate)
+    }
+
+    private static func multipleRisingChimes(sampleRate: Double) -> Data {
+        let hitOffset = 0.15
+        // Four hits, each a perfect fifth above the previous (×3/2 each step)
+        // Starting at 880Hz: 880 → 1320 → 1980 → 2970
+        let fundamentals = [880.0, 1320.0, 1980.0, 2970.0]
+        let totalDuration = hitOffset * Double(fundamentals.count - 1) + 1.2
+        let frameCount = Int(sampleRate * totalDuration)
+        var samples = [Float](repeating: 0, count: frameCount)
+
+        for (index, fundamental) in fundamentals.enumerated() {
+            let offset = hitOffset * Double(index)
+            let scale = 0.4 + 0.6 * Double(index) / Double(fundamentals.count - 1)
+            let partials: [(freq: Double, amp: Double, decay: Double)] = [
+                (fundamental,        1.0,  4.0),
+                (fundamental * 3.0,  0.5,  6.0),
+                (fundamental * 2.0,  0.35, 8.0),
+            ]
+            let start = Int(offset * sampleRate)
+            for (freq, amp, decay) in partials {
                 for i in start..<frameCount {
                     let t = Double(i - start) / sampleRate
                     samples[i] += Float(scale * amp * exp(-decay * t) * sin(2 * .pi * freq * t))
@@ -199,6 +236,12 @@ private enum HapticFeedback {
         case .abortTimer: [
             continuous(intensity: 1.0, sharpness: 0.8, decay: 0.75, sustained: 0, at: 0, duration: 1.0),
         ]
+        case .workoutComplete: [
+            continuous(intensity: 0.5, sharpness: 0.4, decay: 0.1, sustained: 0, at: 0.00, duration: 0.15),
+            continuous(intensity: 0.6, sharpness: 0.5, decay: 0.1, sustained: 0, at: 0.15, duration: 0.15),
+            continuous(intensity: 0.8, sharpness: 0.6, decay: 0.1, sustained: 0, at: 0.30, duration: 0.15),
+            continuous(intensity: 1.0, sharpness: 0.8, decay: 0.75, sustained: 0, at: 0.45, duration: 0.75),
+        ]
         }
 
         guard !events.isEmpty else { return }
@@ -270,6 +313,7 @@ private enum HapticFeedback {
         ("Abort Timer", .abortTimer),
         ("Complete Timer", .completeTimer(false)),
         ("Complete Timer (last in set)", .completeTimer(true)),
+        ("Workout Complete", .workoutComplete),
     ]
 
     List {
