@@ -7,6 +7,7 @@ enum FeedbackEngine {
         case rep(Bool)
         case startTimer, abortTimer, completeTimer(Bool)
         case workoutComplete
+        case setSkipped
     }
 
     static func playFeedback(for event: Event, isAudioMuted: Bool, isHapticsMuted: Bool) {
@@ -29,6 +30,7 @@ private enum AudioFeedback {
     private static let clickPlayer = makePlayer(makeClick(sampleRate: sampleRate))
     private static let lowClickPlayer = makePlayer(makeClick(sampleRate: sampleRate, frequency: 300))
     private static let multipleRisingChimesPlayer = makePlayer(multipleRisingChimes(sampleRate: sampleRate))
+    private static let fallingWhoopPlayer = makePlayer(makeFallingWhoop(sampleRate: sampleRate))
 
     fileprivate static func play(for event: FeedbackEngine.Event) {
         let session = AVAudioSession.sharedInstance()
@@ -45,6 +47,8 @@ private enum AudioFeedback {
             play(lowClickPlayer)
         case .workoutComplete:
             play(multipleRisingChimesPlayer)
+        case .setSkipped:
+            play(fallingWhoopPlayer)
         }
     }
 
@@ -148,6 +152,30 @@ private enum AudioFeedback {
         return cafData(samples: samples, sampleRate: sampleRate)
     }
 
+    private static func makeFallingWhoop(sampleRate: Double) -> Data {
+        let duration = 0.4
+        let frameCount = Int(sampleRate * duration)
+        var samples = [Float](repeating: 0, count: frameCount)
+
+        let startFreq = 330.0
+        let endFreq = 200.0
+        var phase = 0.0
+
+        for i in 0..<frameCount {
+            let t = Double(i) / sampleRate
+            let freq = startFreq + (endFreq - startFreq) * (t / duration)
+            let envelope = exp(-10.0 * t) * (1.0 - exp(-80.0 * t))  // fast attack, decays to near-zero by 0.3s
+            samples[i] = Float(envelope * sin(phase))
+            phase += 2 * .pi * freq / sampleRate
+        }
+
+        let peak = samples.map({ abs($0) }).max() ?? 1
+        let scale = Float(0.9) / peak
+        samples = samples.map { $0 * scale }
+
+        return cafData(samples: samples, sampleRate: sampleRate)
+    }
+
     private static func makeChime(sampleRate: Double) -> Data {
         let duration = 1.2
         let frameCount = Int(sampleRate * duration)
@@ -242,6 +270,9 @@ private enum HapticFeedback {
             continuous(intensity: 0.8, sharpness: 0.6, decay: 0.1, sustained: 0, at: 0.30, duration: 0.15),
             continuous(intensity: 1.0, sharpness: 0.8, decay: 0.75, sustained: 0, at: 0.45, duration: 0.75),
         ]
+        case .setSkipped: [
+            continuous(intensity: 0.6, sharpness: 0.9, decay: 0.8, sustained: 0, at: 0, duration: 0.4),
+        ]
         }
 
         guard !events.isEmpty else { return }
@@ -314,6 +345,7 @@ private enum HapticFeedback {
         ("Complete Timer", .completeTimer(false)),
         ("Complete Timer (last in set)", .completeTimer(true)),
         ("Workout Complete", .workoutComplete),
+        ("Set Skipped", .setSkipped),
     ]
 
     List {

@@ -5,7 +5,7 @@ struct DeckView: View {
     var exercise: Exercise
     var setIndex: Int
     var progressViewTarget: CGRect
-    var onSetWillComplete: () -> Void = {}
+    var onSetWillComplete: (_ completedReps: Int) -> Void = { _ in }
     var onSetComplete: (_ completedReps: Int) -> Void
 
     @State private var completedReps: Int = 0
@@ -29,7 +29,9 @@ struct DeckView: View {
                                 isTop: isTop,
                                 progressViewTarget: progressViewTarget,
                                 completedReps: isTop ? $completedReps : .constant(0),
-                                onSetWillComplete: onSetWillComplete,
+                                onSetWillComplete: {
+                                    onSetWillComplete(completedReps)
+                                },
                                 onSetComplete: {
                                     onSetComplete(completedReps)
                                     completedReps = 0

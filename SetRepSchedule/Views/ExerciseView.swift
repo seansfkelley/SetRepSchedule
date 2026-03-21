@@ -69,8 +69,15 @@ struct ExerciseView: View {
                                 exercise: exercises[idx],
                                 setIndex: idx == exerciseIndex ? completedSetsInCurrentExercise : 0,
                                 progressViewTarget: progressBarFrame,
-                                onSetWillComplete: {
+                                onSetWillComplete: { reps in
                                     setCompletionTrigger += 1
+                                    if reps != exercises[idx].reps {
+                                        FeedbackEngine.playFeedback(
+                                            for: .setSkipped,
+                                            isAudioMuted: isAudioMuted,
+                                            isHapticsMuted: isHapticsMuted,
+                                        )
+                                    }
                                 },
                                 onSetComplete: { reps in
                                     appendReps(reps, for: exercises[idx])
