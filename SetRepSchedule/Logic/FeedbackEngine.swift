@@ -22,32 +22,36 @@ enum FeedbackEngine {
 // MARK: - AudioFeedback
 
 private enum AudioFeedback {
-    private static var player: AVAudioPlayer?
-
     private static let sampleRate: Double = 44100
-    private static let chime = makeChime(sampleRate: sampleRate)
-    private static let risingChime = makeRisingChime(sampleRate: sampleRate)
-    private static let click = makeClick(sampleRate: sampleRate)
-    private static let lowClick = makeClick(sampleRate: sampleRate, frequency: 300)
+    private static let chimePlayer = makePlayer(makeChime(sampleRate: sampleRate))
+    private static let risingChimePlayer = makePlayer(makeRisingChime(sampleRate: sampleRate))
+    private static let clickPlayer = makePlayer(makeClick(sampleRate: sampleRate))
+    private static let lowClickPlayer = makePlayer(makeClick(sampleRate: sampleRate, frequency: 300))
 
     fileprivate static func play(for event: FeedbackEngine.Event) {
-        switch event {
-        case .completeTimer(false):
-            play(chime)
-        case .rep(true), .completeTimer(true):
-            play(risingChime)
-        case .rep(false), .startTimer:
-            play(click)
-        case .abortTimer:
-            play(lowClick)
-        }
-    }
-
-    private static func play(_ data: Data) {
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, options: .mixWithOthers)
         try? session.setActive(true)
-        player = try? AVAudioPlayer(data: data, fileTypeHint: AVFileType.caf.rawValue)
+        switch event {
+        case .completeTimer(false):
+            play(chimePlayer)
+        case .rep(true), .completeTimer(true):
+            play(risingChimePlayer)
+        case .rep(false), .startTimer:
+            play(clickPlayer)
+        case .abortTimer:
+            play(lowClickPlayer)
+        }
+    }
+
+    private static func makePlayer(_ data: Data) -> AVAudioPlayer? {
+        let player = try? AVAudioPlayer(data: data, fileTypeHint: AVFileType.caf.rawValue)
+        player?.prepareToPlay()
+        return player
+    }
+
+    private static func play(_ player: AVAudioPlayer?) {
+        player?.currentTime = 0
         player?.play()
     }
 
