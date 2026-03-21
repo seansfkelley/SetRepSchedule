@@ -111,6 +111,7 @@ struct ExerciseView: View {
                 GeometryReader { geo in
                     ProgressView(value: Double(completedSetsCount), total: Double(max(1, totalSets)))
                         .progressViewStyle(.linear)
+                        .tint(.green)
                         .animation(.linear(duration: 0.4), value: completedSetsCount)
                         .padding(.horizontal)
                         .padding(.top, 10)
