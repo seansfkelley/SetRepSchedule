@@ -65,7 +65,7 @@ private enum AudioFeedback {
 
     private static func makeRisingChime(sampleRate: Double) -> Data {
         let secondHitOffset = 0.15
-        let totalDuration = secondHitOffset + 1.2  // enough room for the second hit to fully decay
+        let totalDuration = secondHitOffset + 1.7  // enough room for the second hit to fully decay
         let frameCount = Int(sampleRate * totalDuration)
         var samples = [Float](repeating: 0, count: frameCount)
 
@@ -107,7 +107,7 @@ private enum AudioFeedback {
         // Four hits, each a perfect fifth above the previous (×3/2 each step)
         // Starting at 880Hz: 880 → 1320 → 1980 → 2970
         let fundamentals = [880.0, 1320.0, 1980.0, 2970.0]
-        let totalDuration = hitOffset * Double(fundamentals.count - 1) + 1.2
+        let totalDuration = hitOffset * Double(fundamentals.count - 1) + 1.7
         let frameCount = Int(sampleRate * totalDuration)
         var samples = [Float](repeating: 0, count: frameCount)
 
